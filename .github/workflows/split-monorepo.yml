@@ -16,7 +16,7 @@ jobs:
         with:
           fetch-depth: 0
       
-      - name: Split myframework-core
+      - name: Monorepo Split of myframework-core
         uses: symplify/monorepo-split-github-action@v2.3.0
         env:
           GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
@@ -27,3 +27,4 @@ jobs:
           user_name: "lbayerl"
           user_email: "lugge@lugge.de"
           branch: "main"
+          tag: ${{ github.ref_type == 'tag' && github.ref_name || '' }}

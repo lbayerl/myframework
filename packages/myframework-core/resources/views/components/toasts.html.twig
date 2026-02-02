@@ -1,0 +1,142 @@
+{#
+    Toast Container Component
+    Renders Symfony flash messages as Bootstrap toasts
+    
+    Features:
+    - Auto-show on page load
+    - Auto-dismiss after 3 seconds
+    - Mobile-optimized (bottom center position)
+    - Color-coded by message type
+    - Accessible (ARIA roles)
+#}
+
+<div id="toast-container" 
+     class="toast-container position-fixed bottom-0 start-50 translate-middle-x p-3" 
+     style="z-index: 1090;">
+    
+    {% for label, messages in app.flashes %}
+        {% for message in messages %}
+            {% set bg_class = {
+                'success': 'bg-success',
+                'error': 'bg-danger',
+                'danger': 'bg-danger',
+                'warning': 'bg-warning',
+                'info': 'bg-info',
+                'primary': 'bg-primary',
+                'secondary': 'bg-secondary'
+            }[label] ?? 'bg-secondary' %}
+            
+            {% set icon = {
+                'success': '✓',
+                'error': '✗',
+                'danger': '✗',
+                'warning': '⚠',
+                'info': 'ℹ'
+            }[label] ?? '•' %}
+            
+            <div class="toast align-items-center text-white {{ bg_class }} border-0 mb-2" 
+                 role="alert" 
+                 aria-live="assertive" 
+                 aria-atomic="true"
+                 data-controller="myframework--toast">
+                <div class="d-flex">
+                    <div class="toast-body d-flex align-items-center gap-2">
+                        <span class="fs-5">{{ icon }}</span>
+                        <span>{{ message }}</span>
+                    </div>
+                    <button type="button" 
+                            class="btn-close btn-close-white me-2 m-auto" 
+                            data-action="myframework--toast#dismiss"
+                            aria-label="Close"></button>
+                </div>
+            </div>
+        {% endfor %}
+    {% endfor %}
+</div>
+
+{# JavaScript helper for programmatic toasts - must be loaded after Bootstrap #}
+<script>
+    /**
+     * Show a toast notification programmatically
+     * @param {string} message - The message to display
+     * @param {string} type - success, error, warning, info, primary, secondary
+     * @param {number} delay - Auto-hide delay in ms (default: 3000)
+     */
+    window.showToast = function(message, type = 'success', delay = 3000) {
+        // Check if Bootstrap is available
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap is not loaded! Cannot show toast.');
+            return;
+        }
+        
+        const container = document.getElementById('toast-container') || createToastContainer();
+        
+        const bgClass = {
+            'success': 'bg-success',
+            'error': 'bg-danger',
+            'danger': 'bg-danger',
+            'warning': 'bg-warning',
+            'info': 'bg-info',
+            'primary': 'bg-primary',
+            'secondary': 'bg-secondary'
+        }[type] || 'bg-secondary';
+        
+        const icon = {
+            'success': '✓',
+            'error': '✗',
+            'danger': '✗',
+            'warning': '⚠',
+            'info': 'ℹ'
+        }[type] || '•';
+        
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast align-items-center text-white ${bgClass} border-0 mb-2`;
+        toastEl.setAttribute('role', 'alert');
+        toastEl.setAttribute('aria-live', 'assertive');
+        toastEl.setAttribute('aria-atomic', 'true');
+        
+        toastEl.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body d-flex align-items-center gap-2">
+                    <span class="fs-5">${icon}</span>
+                    <span>${message}</span>
+                </div>
+                <button type="button" 
+                        class="btn-close btn-close-white me-2 m-auto" 
+                        aria-label="Close"></button>
+            </div>
+        `;
+        
+        container.appendChild(toastEl);
+        
+        // Manually initialize and show the toast with Bootstrap API
+        const toast = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: delay
+        });
+        
+        toast.show();
+        
+        // Remove from DOM after hidden
+        toastEl.addEventListener('hidden.bs.toast', function() {
+            toastEl.remove();
+        });
+    };
+    
+    function createToastContainer() {
+        const container = document.createElement('div');
+        container.id = 'toast-container';
+        container.className = 'toast-container position-fixed bottom-0 start-50 translate-middle-x p-3';
+        container.style.zIndex = '1090';
+        document.body.appendChild(container);
+        return container;
+    }
+    
+    // Verify Bootstrap and showToast are ready
+    document.addEventLisis ready
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof bootstrap === 'undefined') {
+            console.error('⚠ Bootstrap not loaded - Toasts will not work!');
+        }
+</script>
+</script>

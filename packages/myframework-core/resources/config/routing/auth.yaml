@@ -1,0 +1,5 @@
+myframework_core_security_controllers:
+    # Relativ zu resources/config/routing/auth.yaml -> resources/config/routing/../../.. = resources/
+    # und dann weiter nach src/Security/Controller
+    resource: '../../../src/Security/Controller/'
+    type: attribute

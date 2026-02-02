@@ -1,0 +1,228 @@
+{% extends '@MyFrameworkCore/base_home.html.twig' %}
+
+{% block title %}Push Notifications{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="h3 mb-4">🔔 Push Notifications</h1>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Notification Settings</h5>
+                    
+                    <div id="notification-status" class="alert d-none mb-3" role="alert"></div>
+                    
+                    <div id="not-supported" class="alert alert-warning d-none">
+                        <strong>Not Supported:</strong> Your browser doesn't support push notifications.
+                    </div>
+                    
+                    <div id="permission-denied" class="alert alert-danger d-none">
+                        <strong>Permission Denied:</strong> You have blocked notifications. Please enable them in your browser settings.
+                    </div>
+                    
+                    <div id="controls" class="d-none">
+                        <p class="text-muted">
+                            Stay updated with instant notifications about important events and updates.
+                        </p>
+                        
+                        <div class="d-grid gap-2">
+                            <button id="subscribe-btn" class="btn btn-primary btn-lg d-none">
+                                <i class="bi bi-bell"></i> Enable Notifications
+                            </button>
+                            
+                            <button id="unsubscribe-btn" class="btn btn-outline-secondary btn-lg d-none">
+                                <i class="bi bi-bell-slash"></i> Disable Notifications
+                            </button>
+                            
+                            <button id="test-btn" class="btn btn-success d-none">
+                                <i class="bi bi-send"></i> Send Test Notification
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-body">
+                    <h5 class="card-title">How it works</h5>
+                    <ol class="mb-0">
+                        <li>Click "Enable Notifications" to subscribe</li>
+                        <li>Allow notifications when your browser asks</li>
+                        <li>Use "Send Test Notification" to verify it works</li>
+                        <li>You'll receive notifications even when the app is closed</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">About Push Notifications</h5>
+                    <p class="small text-muted">
+                        Push notifications allow you to receive updates instantly, even when you're not using the app.
+                    </p>
+                    <p class="small text-muted mb-0">
+                        <strong>Privacy:</strong> You can disable notifications at any time. Your subscription is tied to this device only.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+const VAPID_PUBLIC_KEY = '{{ my_framework_core_push_vapid_public_key() }}';
+
+const statusDiv = document.getElementById('notification-status');
+const notSupportedDiv = document.getElementById('not-supported');
+const permissionDeniedDiv = document.getElementById('permission-denied');
+const controlsDiv = document.getElementById('controls');
+const subscribeBtn = document.getElementById('subscribe-btn');
+const unsubscribeBtn = document.getElementById('unsubscribe-btn');
+const testBtn = document.getElementById('test-btn');
+
+// Utility: Convert VAPID key to Uint8Array
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+// Show status message
+function showStatus(message, type = 'info') {
+    statusDiv.textContent = message;
+    statusDiv.className = `alert alert-${type}`;
+    statusDiv.classList.remove('d-none');
+    setTimeout(() => statusDiv.classList.add('d-none'), 5000);
+}
+
+// Check if push notifications are supported
+async function checkSupport() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        notSupportedDiv.classList.remove('d-none');
+        return false;
+    }
+    return true;
+}
+
+// Get current subscription status
+async function updateUI() {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    
+    if (subscription) {
+        subscribeBtn.classList.add('d-none');
+        unsubscribeBtn.classList.remove('d-none');
+        testBtn.classList.remove('d-none');
+    } else {
+        subscribeBtn.classList.remove('d-none');
+        unsubscribeBtn.classList.add('d-none');
+        testBtn.classList.add('d-none');
+    }
+}
+
+// Subscribe to push notifications
+async function subscribe() {
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+        
+        // Send subscription to server
+        const response = await fetch('{{ path('myframework_notifications_subscribe') }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(subscription.toJSON())
+        });
+        
+        if (response.ok) {
+            showStatus('✅ Notifications enabled successfully!', 'success');
+            await updateUI();
+        } else {
+            throw new Error('Failed to save subscription');
+        }
+    } catch (error) {
+        console.error('Subscription failed:', error);
+        if (Notification.permission === 'denied') {
+            permissionDeniedDiv.classList.remove('d-none');
+        } else {
+            showStatus('❌ Failed to enable notifications: ' + error.message, 'danger');
+        }
+    }
+}
+
+// Unsubscribe from push notifications
+async function unsubscribe() {
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        
+        if (subscription) {
+            await subscription.unsubscribe();
+            
+            // Remove from server
+            await fetch('{{ path('myframework_notifications_unsubscribe') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ endpoint: subscription.endpoint })
+            });
+        }
+        
+        showStatus('Notifications disabled', 'info');
+        await updateUI();
+    } catch (error) {
+        console.error('Unsubscribe failed:', error);
+        showStatus('❌ Failed to disable notifications', 'danger');
+    }
+}
+
+// Send test notification
+async function sendTest() {
+    try {
+        testBtn.disabled = true;
+        testBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Sending...';
+        
+        const response = await fetch('{{ path('myframework_notifications_test') }}', {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showStatus(`✅ Test notification sent! (${result.sent} sent, ${result.failed} failed)`, 'success');
+        } else {
+            showStatus('❌ Failed to send test notification', 'danger');
+        }
+    } catch (error) {
+        console.error('Test failed:', error);
+        showStatus('❌ Error sending test notification', 'danger');
+    } finally {
+        testBtn.disabled = false;
+        testBtn.innerHTML = '<i class="bi bi-send"></i> Send Test Notification';
+    }
+}
+
+// Initialize
+(async () => {
+    if (!(await checkSupport())) return;
+    
+    controlsDiv.classList.remove('d-none');
+    await updateUI();
+    
+    subscribeBtn.addEventListener('click', subscribe);
+    unsubscribeBtn.addEventListener('click', unsubscribe);
+    testBtn.addEventListener('click', sendTest);
+})();
+</script>
+{% endblock %}

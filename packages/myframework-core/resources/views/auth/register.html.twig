@@ -1,0 +1,26 @@
+{% extends '@MyFrameworkCore/base_auth.html.twig' %}
+
+{% block title %}Registrieren - {{ parent() }}{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body">
+            <h1 class="h4 mb-4">Registrieren</h1>
+
+            {{ form_start(registrationForm) }}
+                {{ form_row(registrationForm.email, {'attr': {'class': 'form-control'}}) }}
+                {{ form_row(registrationForm.plainPassword.first, {'attr': {'class': 'form-control'}}) }}
+                {{ form_row(registrationForm.plainPassword.second, {'attr': {'class': 'form-control'}}) }}
+
+                <button class="btn btn-primary w-100" type="submit">Konto erstellen</button>
+            {{ form_end(registrationForm) }}
+
+            <hr class="my-3">
+
+            <div class="text-center">
+                <a href="{{ path('myframework_auth_login') }}" class="text-decoration-none">Zurück zum Login</a>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+

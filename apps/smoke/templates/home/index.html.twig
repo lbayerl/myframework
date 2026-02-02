@@ -1,0 +1,145 @@
+{% extends '@MyFrameworkCore/base_home.html.twig' %}
+
+{% block title %}Home - {{ parent() }}{% endblock %}
+
+{% block content %}
+{# Import skeleton macros for demo #}
+{% import '@MyFrameworkCore/components/skeleton.html.twig' as skeleton %}
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="h3 mb-4">Willkommen, {{ app.user.email }}!</h1>
+                <p class="text-muted">Du bist erfolgreich angemeldet.</p>
+
+                <hr class="my-4">
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title">Dashboard</h5>
+                                <p class="card-text text-muted">Übersicht deiner Aktivitäten</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h5 class="card-title">Profil</h5>
+                                <p class="card-text text-muted">Deine persönlichen Einstellungen</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{{ path('myframework_notifications_index') }}" class="text-decoration-none">
+                            <div class="card bg-light hover-card">
+                                <div class="card-body">
+                                    <h5 class="card-title">🔔 Benachrichtigungen</h5>
+                                    <p class="card-text text-muted">Push-Benachrichtigungen verwalten</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                {# Mobile UX Features Demo #}
+                <h2 class="h4 mb-3">Mobile UX Features Demo</h2>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <strong>Toast Notifications</strong>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-success btn-sm mb-2" onclick="showToast('Erfolgreich gespeichert!', 'success')">Success Toast</button>
+                                <button class="btn btn-danger btn-sm mb-2" onclick="showToast('Fehler aufgetreten!', 'error')">Error Toast</button>
+                                <button class="btn btn-warning btn-sm mb-2" onclick="showToast('Warnung: Bitte prüfen', 'warning')">Warning Toast</button>
+                                <button class="btn btn-info btn-sm mb-2" onclick="showToast('Information: Update verfügbar', 'info')">Info Toast</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <strong>Swipe Gesture</strong>
+                            </div>
+                            <div class="card-body">
+                                <div class="border rounded p-3 bg-light text-center"
+                                     id="swipe-demo"
+                                     data-controller="myframework--swipeable"
+                                     data-action="myframework--swipeable:swipeleft->swipe-demo#handleLeft myframework--swipeable:swiperight->swipe-demo#handleRight">
+                                    👆 Swipe mich links/rechts (Touch)
+                                </div>
+                                <script>
+                                    // Custom controller for swipe demo
+                                    document.getElementById('swipe-demo').addEventListener('myframework--swipeable:swipeleft', () => {
+                                        showToast('Nach links gewischt!', 'info');
+                                    });
+                                    document.getElementById('swipe-demo').addEventListener('myframework--swipeable:swiperight', () => {
+                                        showToast('Nach rechts gewischt!', 'success');
+                                    });
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <strong>Long Press</strong>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-primary"
+                                        data-controller="myframework--longpress"
+                                        data-action="longpress->handleLongPress"
+                                        data-myframework--longpress-duration-value="800">
+                                    Halte mich gedrückt (0.8s)
+                                </button>
+                                <script>
+                                    function handleLongPress() {
+                                        showToast('Long Press erkannt!', 'primary');
+                                    }
+                                </script>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <strong>Skeleton Loading States</strong>
+                            </div>
+                            <div class="card-body">
+                                <button class="btn btn-secondary btn-sm mb-3" onclick="toggleSkeleton()">Toggle Skeleton</button>
+                                <div id="skeleton-demo">
+                                    {{ skeleton.styles() }}
+                                    {{ skeleton.card(1) }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <script>
+                    function toggleSkeleton() {
+                        const demo = document.getElementById('skeleton-demo');
+                        if (demo.querySelector('.skeleton')) {
+                            demo.innerHTML = '<div class="card"><div class="card-body"><h5>Inhalt geladen!</h5><p>Das ist der echte Inhalt nach dem Laden.</p></div></div>';
+                            showToast('Inhalt geladen!', 'success');
+                        } else {
+                            // Reload skeleton - use fetch or simply reload styles and macro
+                            location.reload();
+                        }
+                    }
+                </script>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+services:
+  _defaults:
+    autowire: true
+    autoconfigure: true
+
+  MyFramework\Core\:
+    resource: '../../src/'
+    exclude:
+      - '../../src/DependencyInjection/'
+      # Commands sollen als Services/Console Commands registriert werden
+      # (keine weiteren excludes hier)
+
+  MyFramework\Core\Push\VapidConfig:
+    arguments:
+      $publicKey: '%myframework_core.push.vapid_public_key%'
+      $privateKey: '%myframework_core.push.vapid_private_key%'
+      $subject: '%myframework_core.push.vapid_subject%'
+
+  MyFramework\Core\UI\Branding:
+    arguments:
+      $appName: '%myframework_core.ui.app_name%'
+      $primaryColor: '%myframework_core.ui.primary_color%'
+      $logoPath: '%myframework_core.ui.logo_path%'
+
+  MyFramework\Core\Security\Service\AuthMailer:
+    arguments:
+      $fromEmail: '%env(resolve:MYFRAMEWORK_FROM_EMAIL)%'
+
+  MyFramework\Core\Command\TestMailerCommand:
+    arguments:
+      $fromEmail: '%env(resolve:MYFRAMEWORK_FROM_EMAIL)%'
+
+  # PWA Bundle - Configure GD Image Processor for icon generation
+  SpomkyLabs\PwaBundle\ImageProcessor\ImageProcessorInterface: '@pwa.image_processor.gd'

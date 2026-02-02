@@ -1,0 +1,62 @@
+{
+  "name": "myframework/core",
+  "type": "symfony-bundle",
+  "description": "MyFramework Core Bundle (Symfony 7.4): Auth (Register/Login/Verify/Reset), Push, PWA, UI/Templates",
+  "keywords": [
+    "symfony",
+    "bundle",
+    "starter",
+    "auth",
+    "pwa",
+    "webpush"
+  ],
+  "license": "MIT",
+  "require": {
+    "php": "^8.3",
+    "symfony/framework-bundle": "^7.4",
+    "symfony/http-kernel": "^7.4",
+    "symfony/config": "^7.4",
+    "symfony/dependency-injection": "^7.4",
+    "symfony/twig-bundle": "^7.4",
+    "symfony/security-bundle": "^7.4",
+    "symfony/mailer": "^7.4",
+    "symfony/asset-mapper": "^7.4",
+    "minishlink/web-push-bundle": "^6.0",
+    "spomky-labs/pwa-bundle": "^1.0",
+    "symfony/form": "^7.4",
+    "symfony/validator": "^7.4",
+    "symfony/security-csrf": "^7.4",
+    "symfony/uid": "^7.4",
+    "doctrine/orm": "^3.6",
+    "doctrine/doctrine-bundle": "^3.2"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^11.0"
+  },
+  "suggest": {
+    "doctrine/orm": "Wenn du Entities/Repositories im Core verwendest (PushSubscription, User, etc.).",
+    "doctrine/doctrine-bundle": "Doctrine-Integration für Symfony."
+  },
+  "autoload": {
+    "psr-4": {
+      "MyFramework\\Core\\": "src/"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "MyFramework\\Core\\Tests\\": "tests/"
+    }
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "extra": {
+    "branch-alias": {
+      "dev-main": "0.1.x-dev"
+    },
+    "twig": {
+      "paths": {
+        "resources/views": "MyFrameworkCore"
+      }
+    }
+  }
+}

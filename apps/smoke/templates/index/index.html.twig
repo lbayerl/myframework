@@ -1,0 +1,63 @@
+{% extends '@MyFrameworkCore/base.html.twig' %}
+
+{% block title %}Welcome{% endblock %}
+
+{% block body %}
+<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="text-center mb-5">
+                    <h1 class="display-4 fw-bold mb-3">Welcome to {{ branding.appName }}</h1>
+                    <p class="lead text-muted">
+                        A modern Progressive Web App built with Symfony 7.4 and MyFramework Core
+                    </p>
+                </div>
+
+                <div class="card shadow-sm">
+                    <div class="card-body p-5">
+                        <h2 class="h4 mb-4 text-center">Get Started</h2>
+
+                        <div class="d-grid gap-3">
+                            <a href="{{ path('myframework_auth_login') }}" class="btn btn-primary btn-lg">
+                                <i class="bi bi-box-arrow-in-right"></i> Sign In
+                            </a>
+
+                            <a href="{{ path('myframework_auth_register') }}" class="btn btn-outline-primary btn-lg">
+                                <i class="bi bi-person-plus"></i> Create Account
+                            </a>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="row g-3 text-center">
+                            <div class="col-4">
+                                <div class="feature-icon">
+                                    <i class="bi bi-shield-check fs-1 text-primary"></i>
+                                    <p class="small text-muted mt-2 mb-0">Secure Auth</p>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="feature-icon">
+                                    <i class="bi bi-bell fs-1 text-primary"></i>
+                                    <p class="small text-muted mt-2 mb-0">Push Notifications</p>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="feature-icon">
+                                    <i class="bi bi-phone fs-1 text-primary"></i>
+                                    <p class="small text-muted mt-2 mb-0">PWA Ready</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-center text-muted mt-4 small">
+                    Powered by <strong>MyFramework Core</strong> • Built with Symfony 7.4 LTS
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

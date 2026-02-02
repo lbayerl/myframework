@@ -1,0 +1,14 @@
+{% extends '@MyFrameworkCore/base_auth.html.twig' %}
+
+{% block title %}Link ungültig - {{ parent() }}{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body text-center">
+            <h1 class="h4 mb-3">Link ungültig</h1>
+            <p class="text-muted mb-4">Dieser Reset-Link ist ungültig oder abgelaufen.</p>
+            <a class="btn btn-primary" href="{{ path('myframework_auth_reset_password_request') }}">Neuen Link anfordern</a>
+        </div>
+    </div>
+{% endblock %}
+

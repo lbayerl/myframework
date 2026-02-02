@@ -1,0 +1,14 @@
+{% extends '@MyFrameworkCore/base_auth.html.twig' %}
+
+{% block title %}E-Mail gesendet - {{ parent() }}{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <div class="card-body text-center">
+            <h1 class="h4 mb-3">Wenn ein Konto existiert…</h1>
+            <p class="text-muted mb-4">…haben wir dir eine E-Mail mit einem Link zum Zurücksetzen gesendet.</p>
+            <a class="btn btn-primary" href="{{ path('myframework_auth_login') }}">Zum Login</a>
+        </div>
+    </div>
+{% endblock %}
+

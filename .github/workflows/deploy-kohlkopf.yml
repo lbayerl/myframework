@@ -76,19 +76,19 @@ jobs:
             composer config --unset repositories.0 || true
             
             echo "Installing dependencies..."
-            composer install --no-dev --optimize-autoloader
+            SYMFONY_DEPRECATIONS_HELPER=disabled composer install --no-dev --optimize-autoloader --no-scripts
             
             echo "Setting permissions..."
             chown -R www-data:www-data var/
             chmod -R 775 var/
             
             echo "Clearing cache..."
-            php bin/console cache:clear --env=prod
-            php bin/console cache:warmup --env=prod
+            APP_ENV=prod php bin/console cache:clear --no-warmup
+            APP_ENV=prod php bin/console cache:warmup
             
             echo "Compiling assets..."
-            php bin/console importmap:install --env=prod
-            php bin/console asset-map:compile --env=prod
+            APP_ENV=prod php bin/console importmap:install
+            APP_ENV=prod php bin/console asset-map:compile
             
             # Reload PHP-FPM
             if command -v systemctl &> /dev/null; then

@@ -1,5 +1,14 @@
 # Deployment Setup für Kohlkopf App
 
+## Voraussetzungen
+
+Der Server benötigt folgende PHP-Extensions:
+```bash
+sudo apt update
+sudo apt install php8.4-fpm php8.4-mysql php8.4-xml php8.4-intl php8.4-mbstring php8.4-gd
+sudo systemctl restart php8.4-fpm
+```
+
 ## GitHub Secrets konfigurieren
 
 Gehe zu https://github.com/lbayerl/myframework/settings/secrets/actions und füge folgende Secrets hinzu:
@@ -10,12 +19,20 @@ Gehe zu https://github.com/lbayerl/myframework/settings/secrets/actions und füg
 |------------|-------|
 | `DEPLOY_HOST` | `5.9.74.208` |
 | `DEPLOY_USER` | `lugge` |
-| `DEPLOY_SSH_KEY` | Inhalt von `~/.ssh/id_ecdsa` (komplett mit BEGIN/END) |
+| `DEPLOY_SSH_KEY` | Inhalt von `~/.ssh/id_ed25519_deploy` (ohne Passphrase!) |
 
-**SSH-Key kopieren:**
+**SSH-Key erstellen und kopieren:**
 ```powershell
-# In PowerShell:
-Get-Content $env:USERPROFILE\.ssh\id_ecdsa | Set-Clipboard
+# In PowerShell: Neuen SSH-Key ohne Passphrase erstellen
+ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\id_ed25519_deploy -N '""' -C "github-actions-deploy"
+
+# Public Key auf Server hinzufügen
+ssh lugge@5.9.74.208  # Mit deinem normalen Key
+echo "<INHALT VON id_ed25519_deploy.pub>" >> ~/.ssh/authorized_keys
+exit
+
+# Private Key in Zwischenablage kopieren
+Get-Content $env:USERPROFILE\.ssh\id_ed25519_deploy | Set-Clipboard
 # Dann in GitHub Secret einfügen (Strg+V)
 ```
 
@@ -24,25 +41,28 @@ Get-Content $env:USERPROFILE\.ssh\id_ecdsa | Set-Clipboard
 ### 1. Deployment-Verzeichnis erstellen
 
 ```bash
-ssh user@yourserver.com
+ssh lugge@5.9.74.208
 
 # Verzeichnis anlegen
 sudo mkdir -p /var/www/kohlkopf
-sudo chown -R www-data:www-data /var/www/kohlkopf
+sudo chown -R lugge:www-data /var/www/kohlkopf
+sudo chmod -R 775 /var/www/kohlkopf
 
-# Backup-Verzeichnis
-sudo mkdir -p /var/backups/kohlkopf
-sudo chown -R www-data:www-data /var/backups/kohlkopf
+# Backup-Verzeichnis (im Home-Verzeichnis)
+mkdir -p ~/kohlkopf-backups
 ```
 
 ### 2. Datenbank vorbereiten
 
-**Hinweis:** Datenbank und Schema müssen bereits existieren. Migrations werden **nicht** automatisch ausgeführt.
+**Wichtig:** 
+- Datenbank `symf_kohlkopf` muss bereits existieren
+- Migrations **nicht** im Deployment ausführen (lokal gegen Prod-DB entwickeln)
+- Schema ist bereits aktuell durch lokale Entwicklung
 
 ### 3. .env.local erstellen
 
 ```bash
-sudo nano /var/www/kohlkopf/.env.local
+nano /var/www/kohlkopf/.env.local
 ```
 
 Inhalt:
@@ -51,35 +71,38 @@ APP_ENV=prod
 APP_DEBUG=0
 APP_SECRET=<generiere-mit: openssl rand -hex 32>
 
-# Datenbank (siehe copilot-instructions.md)
-DATABASE_URL="mysql://symfony:password@localhost:3306/symf_kohlkopf?serverVersion=11.0&charset=utf8mb4"
+# Datenbank (Remote MariaDB via SSH Tunnel)
+DATABASE_URL="mysql://symfony:password@127.0.0.1:3306/symf_kohlkopf?serverVersion=11.0&charset=utf8mb4"
 
-# Mailer
-MAILER_DSN=smtp://user:pass@smtp.example.com:587
+# Mailer (z.B. Brevo SMTP)
+MAILER_DSN=smtp://user:pass@smtp-relay.brevo.com:587
 
 # Branding
 MYFRAMEWORK_APP_NAME="Kohlkopf"
 MYFRAMEWORK_PRIMARY_COLOR=0d6efd
 
-# VAPID Keys (auf Server generieren!)
+# VAPID Keys (generiere nach erstem Deployment!)
 VAPID_PUBLIC_KEY=
 VAPID_PRIVATE_KEY=
 VAPID_SUBJECT=mailto:your@email.com
 ```
 
-### 4. VAPID Keys generieren
+**Wichtig:** `.env.local` wird **nicht** deployed - muss einmalig manuell auf dem Server erstellt werden!
+
+### 4. VAPID Keys generieren (nach erstem Deployment)
 
 ```bash
 cd /var/www/kohlkopf
-
-# Manuell Keys generieren (einmalig)
 php bin/console myframework:vapid:generate --subject="mailto:your@email.com"
 
 # Output in .env.local eintragen
-sudo nano .env.local
+nano .env.local
+
+# Cache clearen
+php bin/console cache:clear --env=prod
 ```
 
-### 5. Nginx konfigurieren
+### 5. Nginx konfigurieren (falls noch nicht geschehen)
 
 ```bash
 sudo nano /etc/nginx/sites-available/kohlkopf
@@ -89,7 +112,7 @@ Inhalt:
 ```nginx
 server {
     listen 80;
-    server_name kohlkopf.yourdomain.com;
+    server_name your-domain.de www.your-domain.de;
     root /var/www/kohlkopf/public;
 
     location / {
@@ -121,69 +144,86 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### 6. SSL mit Let's Encrypt
+### 6. SSL mit Let's Encrypt (nach erstem Deployment)
 
 ```bash
-sudo certbot --nginx -d kohlkopf.yourdomain.com
+# Apache (falls Apache verwendet wird)
+sudo certbot --apache -d your-domain.de -d www.your-domain.de
+
+# Oder Nginx
+sudo certbot --nginx -d your-domain.de -d www.your-domain.de
 ```
 
 ## Deployment-Workflow
 
+### Was macht das Deployment?
+
+1. **Backup erstellen**: Aktueller Stand → `~/kohlkopf-backups/YYYYMMDD_HHMMSS`
+2. **Code deployen**: TAR-Archiv hochladen und entpacken (ohne vendor, var, .env.local, legacy)
+3. **Dependencies installieren**: `composer install` (holt myframework/core von GitHub)
+4. **Assets kompilieren**: Importmap + Asset-Map
+5. **Cache aufwärmen**: Prod-Cache generieren
+6. **PHP-FPM reload**: Opcache leeren
+
 ### Automatisches Deployment
 
-Pushe einfach auf `main`:
-```bash
-git push origin main
-```
+Pushe auf `main` - Workflow startet automatisch bei Änderungen in:
+- `apps/kohlkopf/**`
+- `packages/myframework-core/**`
 
-Die GitHub Action wird automatisch ausgelöst, wenn:
-- Dateien in `apps/kohlkopf/**` geändert wurden
-- Dateien in `packages/myframework-core/**` geändert wurden (Bundle-Updates)
+```bash
+git add .
+git commit -m "feat: Add new feature"
+git push
+```
 
 ### Manuelles Deployment
 
-Über GitHub UI:
-1. Gehe zu Actions → Deploy Kohlkopf App
-2. Klicke "Run workflow"
-3. Wähle Environment (production/staging)
-4. Klicke "Run workflow"
+1. https://github.com/lbayerl/myframework/actions
+2. **Deploy Kohlkopf App** → **Run workflow**
+3. Branch: `main`, Environment: `production`
+4. **Run workflow**
 
-### Rollback bei Fehler
+### Rollback
 
-Falls das Deployment fehlschlägt, wird automatisch ein Rollback durchgeführt.
-
-Manuelles Rollback:
+Manuelles Rollback zu vorherigem Backup:
 ```bash
-ssh user@yourserver.com
+ssh lugge@5.9.74.208
 
-# Zeige verfügbare Backups
-ls -la /var/backups/kohlkopf/
+# Verfügbare Backups anzeigen
+ls -la ~/kohlkopf-backups/
 
 # Rollback zu bestimmtem Backup
-sudo rm -rf /var/www/kohlkopf
-sudo cp -r /var/backups/kohlkopf/20260204_143000 /var/www/kohlkopf
-sudo chown -R www-data:www-data /var/www/kohlkopf
+cd /var/www
+sudo rm -rf kohlkopf
+sudo cp -r ~/kohlkopf-backups/20260204_143000 kohlkopf
+sudo chown -R lugge:www-data kohlkopf
+sudo systemctl reload php8.4-fpm
 ```
 
 ## Troubleshooting
 
 ### Deployment schlägt fehl
 
-1. **SSH-Verbindung prüfen:**
+1. **SSH-Verbindung testen:**
    ```bash
-   ssh -i ~/.ssh/kohlkopf_deploy user@yourserver.com
+   ssh -i ~/.ssh/id_ed25519_deploy lugge@5.9.74.208 "echo 'Connection OK'"
    ```
 
-2. **GitHub Action Logs checken:**
-   Repository → Actions → Deploy Kohlkopf App → Latest run → Logs
+2. **GitHub Action Logs:**
+   https://github.com/lbayerl/myframework/actions
 
 3. **Server-Logs prüfen:**
    ```bash
+   ssh lugge@5.9.74.208
+   
    # PHP-FPM Logs
    sudo tail -f /var/log/php8.4-fpm.log
    
-   # Nginx Logs
-   sudo tail -f /var/log/nginx/kohlkopf_error.log
+   # Apache/Nginx Logs
+   sudo tail -f /var/log/apache2/error.log
+   # oder
+   sudo tail -f /var/log/nginx/error.log
    
    # Symfony Logs
    tail -f /var/www/kohlkopf/var/log/prod.log
@@ -192,11 +232,22 @@ sudo chown -R www-data:www-data /var/www/kohlkopf
 ### Cache-Probleme
 
 ```bash
-ssh user@yourserver.com
+ssh lugge@5.9.74.208
 cd /var/www/kohlkopf
-sudo rm -rf var/cache/*
+rm -rf var/cache/*
 php bin/console cache:clear --env=prod
-sudo chown -R www-data:www-data var/
+chmod -R 775 var/
+```
+
+### Composer-Probleme (Path Repository)
+
+Falls Deployment mit "Source path not found" fehlschlägt:
+```bash
+ssh lugge@5.9.74.208
+cd /var/www/kohlkopf
+rm -f composer.lock
+composer config --unset repositories.0
+composer install --no-dev
 ```
 
 ### Asset-Probleme

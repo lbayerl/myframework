@@ -76,13 +76,13 @@ jobs:
             composer config --unset repositories.0 || true
             
             echo "Installing dependencies..."
-            SYMFONY_DEPRECATIONS_HELPER=disabled composer install --no-dev --optimize-autoloader --no-scripts
+            SYMFONY_DEPRECATIONS_HELPER=disabled composer install --no-dev --optimize-autoloader
             
             echo "Setting permissions..."
             chmod -R 775 var/ 2>/dev/null || true
             
             echo "Clearing cache..."
-            APP_ENV=prod php bin/console cache:clear --no-warmup
+            rm -rf var/cache/prod
             APP_ENV=prod php bin/console cache:warmup
             
             echo "Compiling assets..."

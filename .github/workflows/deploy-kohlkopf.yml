@@ -30,6 +30,7 @@ jobs:
         run: |
           cd apps/kohlkopf
           tar -czf ../../kohlkopf-deploy.tar.gz \
+            --exclude='legacy/*' \
             --exclude='var/cache/*' \
             --exclude='var/log/*' \
             --exclude='vendor/*' \
@@ -69,6 +70,9 @@ jobs:
             
             # Deploy
             cd $DEPLOY_PATH
+            
+            echo "Removing local path repository from composer.json..."
+            composer config --unset repositories.myframework-core-local || true
             
             echo "Installing dependencies..."
             composer install --no-dev --optimize-autoloader

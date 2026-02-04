@@ -23,3 +23,6 @@
 /public/site.*.webmanifest
 /public/sw.js
 ###< spomky-labs/pwa-bundle ###
+
+# Legacy code (local reference only)
+/legacy/

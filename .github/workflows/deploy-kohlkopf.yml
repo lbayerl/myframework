@@ -1,0 +1,105 @@
+name: Deploy Kohlkopf App
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'apps/kohlkopf/**'
+      - 'packages/myframework-core/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Create deployment package
+        run: |
+          cd apps/kohlkopf
+          tar -czf ../../kohlkopf-deploy.tar.gz \
+            --exclude='var/cache/*' \
+            --exclude='var/log/*' \
+            --exclude='vendor/*' \
+            --exclude='.env.local' \
+            --exclude='.git' \
+            .
+      
+      - name: Deploy to server
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts
+          
+          # Upload package
+          scp -i ~/.ssh/deploy_key kohlkopf-deploy.tar.gz ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/
+          
+          # Execute deployment
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} 'bash -s' << 'ENDSSH'
+            set -e
+            
+            DEPLOY_PATH="/var/www/kohlkopf"
+            BACKUP_PATH="/var/backups/kohlkopf/$(date +%Y%m%d_%H%M%S)"
+            
+            # Backup current state
+            if [ -d "$DEPLOY_PATH/vendor" ]; then
+              echo "Creating backup..."
+              mkdir -p $(dirname $BACKUP_PATH)
+              cp -r $DEPLOY_PATH $BACKUP_PATH
+            fi
+            
+            # Extract new version
+            echo "Extracting new version..."
+            mkdir -p $DEPLOY_PATH
+            tar -xzf /tmp/kohlkopf-deploy.tar.gz -C $DEPLOY_PATH
+            rm /tmp/kohlkopf-deploy.tar.gz
+            
+            # Deploy
+            cd $DEPLOY_PATH
+            
+            echo "Installing dependencies..."
+            composer install --no-dev --optimize-autoloader
+            
+            echo "Setting permissions..."
+            chown -R www-data:www-data var/
+            chmod -R 775 var/
+            
+            echo "Clearing cache..."
+            php bin/console cache:clear --env=prod
+            php bin/console cache:warmup --env=prod
+            
+            echo "Compiling assets..."
+            php bin/console importmap:install --env=prod
+            php bin/console asset-map:compile --env=prod
+            
+            # Reload PHP-FPM
+            if command -v systemctl &> /dev/null; then
+              echo "Reloading PHP-FPM..."
+              systemctl reload php8.4-fpm 2>/dev/null || true
+            fi
+            
+            echo "✅ Deployment successful!"
+            echo "Backup: $BACKUP_PATH"
+          ENDSSH
+      
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+          fi

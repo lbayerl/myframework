@@ -15,6 +15,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class ResetPasswordController extends AbstractController
@@ -26,11 +27,21 @@ final class ResetPasswordController extends AbstractController
         EntityManagerInterface $em,
         TokenFactory $tokenFactory,
         AuthMailer $mailer,
+        RateLimiterFactory $authPasswordResetLimiter,
     ): Response {
+        // Apply rate limiting based on IP address
+        $limiter = $authPasswordResetLimiter->create($request->getClientIp() ?? '0.0.0.0');
+        
         $form = $this->createForm(ResetPasswordRequestFormType::class);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Check rate limit on actual submission
+            if (!$limiter->consume(1)->isAccepted()) {
+                $this->addFlash('error', 'Zu viele Anfragen zum Zurücksetzen des Passworts. Bitte versuchen Sie es später erneut.');
+                return $this->redirectToRoute('myframework_auth_reset_password_request');
+            }
+
             $email = (string) $form->get('email')->getData();
             $user = $users->findOneBy(['email' => mb_strtolower($email)]);
 

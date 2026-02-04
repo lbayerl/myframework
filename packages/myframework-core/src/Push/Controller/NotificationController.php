@@ -50,7 +50,9 @@ final class NotificationController extends AbstractController
 
             return $this->json(['success' => true]);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+            // Log the actual error for debugging but don't expose it to users
+            // TODO: Add proper logging
+            return $this->json(['error' => 'Failed to subscribe to push notifications'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -68,7 +70,9 @@ final class NotificationController extends AbstractController
 
             return $this->json(['success' => true]);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+            // Log the actual error for debugging but don't expose it to users
+            // TODO: Add proper logging
+            return $this->json(['error' => 'Failed to unsubscribe from push notifications'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 
@@ -104,7 +108,9 @@ final class NotificationController extends AbstractController
                 'total' => count($reports),
             ]);
         } catch (\Exception $e) {
-            return $this->json(['error' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+            // Log the actual error for debugging but don't expose it to users
+            // TODO: Add proper logging
+            return $this->json(['error' => 'Failed to send test notification'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 }

@@ -14,6 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class RegisterController extends AbstractController
@@ -25,12 +26,22 @@ final class RegisterController extends AbstractController
         UserPasswordHasherInterface $passwordHasher,
         TokenFactory $tokenFactory,
         AuthMailer $mailer,
+        RateLimiterFactory $authRegistrationLimiter,
     ): Response {
+        // Apply rate limiting based on IP address
+        $limiter = $authRegistrationLimiter->create($request->getClientIp() ?? '0.0.0.0');
+        
         $user = new User();
         $form = $this->createForm(RegistrationFormType::class, $user);
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
+            // Check rate limit on actual submission
+            if (!$limiter->consume(1)->isAccepted()) {
+                $this->addFlash('error', 'Zu viele Registrierungsversuche. Bitte versuchen Sie es später erneut.');
+                return $this->redirectToRoute('myframework_auth_register');
+            }
+
             $hashed = $passwordHasher->hashPassword($user, (string) $form->get('plainPassword')->getData());
             $user->setPassword($hashed);
             $user->setVerified(false);

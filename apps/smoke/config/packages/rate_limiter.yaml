@@ -1,0 +1,32 @@
+# Rate limiting configuration for authentication endpoints
+# This helps prevent brute force attacks on login, registration, and password reset
+
+framework:
+    rate_limiter:
+        # Rate limiter for login attempts
+        # Allows 5 attempts per 15 minutes per IP
+        auth_login:
+            policy: 'sliding_window'
+            limit: 5
+            interval: '15 minutes'
+
+        # Rate limiter for password reset requests
+        # Allows 3 requests per hour per IP
+        auth_password_reset:
+            policy: 'sliding_window'
+            limit: 3
+            interval: '1 hour'
+
+        # Rate limiter for registration
+        # Allows 3 registrations per hour per IP
+        auth_registration:
+            policy: 'sliding_window'
+            limit: 3
+            interval: '1 hour'
+
+        # Rate limiter for email verification
+        # Allows 10 attempts per hour per IP
+        auth_email_verification:
+            policy: 'sliding_window'
+            limit: 10
+            interval: '1 hour'

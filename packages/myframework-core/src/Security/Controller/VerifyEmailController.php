@@ -9,13 +9,24 @@ use MyFramework\Core\Entity\EmailVerificationToken;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
 final class VerifyEmailController extends AbstractController
 {
     #[Route(path: '/verify-email', name: 'myframework_auth_verify_email')]
-    public function verify(Request $request, EntityManagerInterface $em): Response
-    {
+    public function verify(
+        Request $request,
+        EntityManagerInterface $em,
+        RateLimiterFactory $authEmailVerificationLimiter,
+    ): Response {
+        // Apply rate limiting based on IP address
+        $limiter = $authEmailVerificationLimiter->create($request->getClientIp() ?? '0.0.0.0');
+        if (!$limiter->consume(1)->isAccepted()) {
+            $this->addFlash('error', 'Zu viele Verifizierungsversuche. Bitte versuchen Sie es später erneut.');
+            return $this->render('@MyFrameworkCore/auth/verify_email_failed.html.twig');
+        }
+
         $plainToken = (string) $request->query->get('token', '');
         if ($plainToken === '') {
             throw $this->createNotFoundException();

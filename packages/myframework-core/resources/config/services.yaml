@@ -30,5 +30,23 @@ services:
     arguments:
       $fromEmail: '%myframework_core.mailer.from_email%'
 
+  # Rate limiter factories for authentication endpoints
+  # These services will be auto-injected by name in controllers
+  auth_login_limiter:
+    alias: 'limiter.auth_login'
+    public: true
+
+  auth_registration_limiter:
+    alias: 'limiter.auth_registration'
+    public: true
+
+  auth_password_reset_limiter:
+    alias: 'limiter.auth_password_reset'
+    public: true
+
+  auth_email_verification_limiter:
+    alias: 'limiter.auth_email_verification'
+    public: true
+
   # PWA Bundle - Configure GD Image Processor for icon generation
   SpomkyLabs\PwaBundle\ImageProcessor\ImageProcessorInterface: '@pwa.image_processor.gd'

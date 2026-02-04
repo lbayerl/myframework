@@ -46,6 +46,14 @@ final class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('mailer')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->scalarNode('from_email')
+                            ->defaultValue('%env(resolve:' . Env::FROM_EMAIL . ')%')
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
 
         return $treeBuilder;

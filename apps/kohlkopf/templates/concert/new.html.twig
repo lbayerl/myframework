@@ -1,0 +1,15 @@
+{% extends '@MyFrameworkCore/base_home.html.twig' %}
+
+{% block title %}Neues Konzert{% endblock %}
+
+{% block page_title %}Neues Konzert{% endblock %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="card">
+            <div class="card-body">
+                {% include 'concert/_form.html.twig' with { form: form } %}
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -1,0 +1,134 @@
+{# Partial: Ticket List #}
+{% if tickets|length > 0 %}
+    <div class="list-group list-group-flush">
+        {% for ticket in tickets %}
+            <div class="list-group-item ticket-card" data-ticket-id="{{ ticket.id }}">
+                <div class="d-flex align-items-start">
+                    {# Ticket Type Icon #}
+                    <div class="me-3 fs-4">
+                        {% if ticket.type.value == 'HARD_TICKET' %}
+                            🎫
+                        {% elseif ticket.type.value == 'E_TICKET' %}
+                            📧
+                        {% else %}
+                            📱
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex-grow-1">
+                        {# Ticket Type & Price #}
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>
+                                    {% if ticket.type.value == 'HARD_TICKET' %}
+                                        Hard Ticket
+                                    {% elseif ticket.type.value == 'E_TICKET' %}
+                                        E-Ticket
+                                    {% else %}
+                                        App-Ticket
+                                    {% endif %}
+                                </strong>
+                                {% if ticket.price %}
+                                    <span class="badge bg-secondary ms-1">{{ ticket.price|number_format(2, ',', '.') }} €</span>
+                                {% endif %}
+                            </div>
+                            
+                            {# Edit & Delete buttons - everyone can edit/delete tickets #}
+                            <div class="d-flex gap-1">
+                                <a href="{{ path('ticket_edit', {concertId: concert.id, ticketId: ticket.id}) }}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    ✏️
+                                </a>
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-danger" 
+                                        onclick="deleteTicket('{{ concert.id }}', '{{ ticket.id }}', this)">
+                                    🗑️
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {# Owner & Purchaser #}
+                        <div class="small text-muted mt-1">
+                            <div>
+                                <i class="bi bi-person me-1"></i>Gehört: 
+                                {% if ticket.owner %}
+                                    <strong>{{ ticket.owner.email }}</strong>
+                                {% else %}
+                                    <span class="text-muted fst-italic">(noch nicht zugeordnet)</span>
+                                {% endif %}
+                            </div>
+                            {% if ticket.purchaser %}
+                                {% if ticket.owner is null or ticket.purchaser.id != ticket.owner.id %}
+                                    <div>
+                                        <i class="bi bi-cart me-1"></i>Gekauft von: 
+                                        <strong>{{ ticket.purchaser.email }}</strong>
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <div>
+                                    <i class="bi bi-cart me-1"></i>Gekauft von: 
+                                    <span class="text-muted fst-italic">(noch nicht zugeordnet)</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        {# Seat info #}
+                        {% if ticket.seat %}
+                            <div class="small text-muted">
+                                <i class="bi bi-geo me-1"></i>{{ ticket.seat }}
+                            </div>
+                        {% endif %}
+                        
+                        {# Payment Status #}
+                        <div class="mt-2">
+                            {% if ticket.isPaid %}
+                                <span class="payment-badge small text-success">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Bezahlt
+                                </span>
+                            {% else %}
+                                {% if ticket.owner and ticket.purchaser and ticket.owner.id != ticket.purchaser.id %}
+                                    <span class="payment-badge small text-warning">
+                                        <i class="bi bi-exclamation-triangle me-1"></i>Zahlung offen
+                                    </span>
+                                    
+                                    {# Show "Mark as paid" button for everyone #}
+                                    <button type="button" 
+                                            class="btn btn-outline-success btn-sm ms-2"
+                                            onclick="markTicketPaid('{{ concert.id }}', '{{ ticket.id }}', this)">
+                                        <i class="bi bi-check me-1"></i>Als bezahlt markieren
+                                    </button>
+                                {% else %}
+                                    <span class="payment-badge small text-success">
+                                        <i class="bi bi-check-circle-fill me-1"></i>Bezahlt
+                                    </span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+    
+    {# Unpaid Debts Summary #}
+    {% if unpaidTickets|length > 0 %}
+        <div class="card-footer bg-warning-subtle">
+            <h6 class="mb-2"><i class="bi bi-exclamation-triangle me-2"></i>Offene Zahlungen</h6>
+            <ul class="list-unstyled mb-0 small">
+                {% for ticket in unpaidTickets %}
+                    <li class="mb-1">
+                        <strong>{{ ticket.owner.displayName|default(ticket.owner.email) }}</strong>
+                        schuldet 
+                        <strong>{{ ticket.purchaser.displayName|default(ticket.purchaser.email) }}</strong>
+                        noch <strong>{{ ticket.price|number_format(2, ',', '.') }} €</strong>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+{% else %}
+    <div class="p-4 text-center text-muted">
+        <i class="bi bi-ticket-perforated fs-1 d-block mb-2"></i>
+        <p class="mb-0">Noch keine Tickets eingetragen.</p>
+    </div>
+{% endif %}

@@ -24,11 +24,11 @@ services:
 
   MyFramework\Core\Security\Service\AuthMailer:
     arguments:
-      $fromEmail: '%env(resolve:MYFRAMEWORK_FROM_EMAIL)%'
+      $fromEmail: '%myframework_core.mailer.from_email%'
 
   MyFramework\Core\Command\TestMailerCommand:
     arguments:
-      $fromEmail: '%env(resolve:MYFRAMEWORK_FROM_EMAIL)%'
+      $fromEmail: '%myframework_core.mailer.from_email%'
 
   # PWA Bundle - Configure GD Image Processor for icon generation
   SpomkyLabs\PwaBundle\ImageProcessor\ImageProcessorInterface: '@pwa.image_processor.gd'

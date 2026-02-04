@@ -12,6 +12,7 @@ final class Env
     public const APP_NAME = 'MYFRAMEWORK_APP_NAME';
     public const PRIMARY_COLOR = 'MYFRAMEWORK_PRIMARY_COLOR';
     public const LOGO_PATH = 'MYFRAMEWORK_LOGO_PATH';
+    public const FROM_EMAIL = 'MYFRAMEWORK_FROM_EMAIL';
 
     public const VAPID_PUBLIC_KEY = 'VAPID_PUBLIC_KEY';
     public const VAPID_PRIVATE_KEY = 'VAPID_PRIVATE_KEY';

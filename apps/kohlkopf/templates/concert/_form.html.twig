@@ -1,0 +1,51 @@
+{{ form_start(form, { attr: { novalidate: 'novalidate' } }) }}
+
+<div class="mb-3">
+    {{ form_label(form.title) }}
+    {{ form_widget(form.title, { attr: { class: 'form-control', autofocus: true } }) }}
+    {{ form_errors(form.title) }}
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-3">
+        {{ form_label(form.date) }}
+        {{ form_widget(form.date, { attr: { class: 'form-control' } }) }}
+        {{ form_errors(form.date) }}
+    </div>
+    <div class="col-md-6 mb-3">
+        {{ form_label(form.time) }}
+        {{ form_widget(form.time, { attr: { class: 'form-control' } }) }}
+        {{ form_errors(form.time) }}
+    </div>
+</div>
+
+<div class="mb-3">
+    {{ form_label(form.whereText) }}
+    {{ form_widget(form.whereText, { attr: { class: 'form-control' } }) }}
+    {{ form_errors(form.whereText) }}
+</div>
+
+<div class="mb-3">
+    {{ form_label(form.comment) }}
+    {{ form_widget(form.comment, { attr: { class: 'form-control', rows: 3 } }) }}
+    {{ form_errors(form.comment) }}
+</div>
+
+<div class="mb-3">
+    {{ form_label(form.externalLink) }}
+    {{ form_widget(form.externalLink, { attr: { class: 'form-control' } }) }}
+    {{ form_errors(form.externalLink) }}
+</div>
+
+<div class="mb-3">
+    {{ form_label(form.status) }}
+    {{ form_widget(form.status, { attr: { class: 'form-select' } }) }}
+    {{ form_errors(form.status) }}
+</div>
+
+<div class="d-flex gap-2">
+    <button class="btn btn-primary" type="submit">Speichern</button>
+    <a class="btn btn-secondary" href="{{ concert is defined ? path('concert_show', {id: concert.id}) : path('app_home') }}">Abbrechen</a>
+</div>
+
+{{ form_end(form) }}

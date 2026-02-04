@@ -22,6 +22,8 @@ final class MyFrameworkCoreExtension extends Extension
 
         $container->setParameter('myframework_core.ui.app_name', $config['ui']['app_name']);
         $container->setParameter('myframework_core.ui.primary_color', $config['ui']['primary_color']);
+
+        $container->setParameter('myframework_core.mailer.from_email', $config['mailer']['from_email']);
         $container->setParameter('myframework_core.ui.logo_path', $config['ui']['logo_path'] ?? null);
 
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../../resources/config'));

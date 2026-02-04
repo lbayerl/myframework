@@ -1,0 +1,28 @@
+# Documentation available at https://pwa.spomky-labs.com/
+pwa:
+    asset_compiler: false
+
+    manifest:
+        enabled: true
+        public_url: '/site.webmanifest'
+        name: '%env(MYFRAMEWORK_APP_NAME)%'
+        short_name: '%env(MYFRAMEWORK_APP_NAME)%'
+        description: 'Kohlkopf App - Built with MyFramework'
+        theme_color: '#%env(MYFRAMEWORK_PRIMARY_COLOR)%'
+        background_color: '#ffffff'
+        lang: de
+        display: 'standalone'
+        start_url: '/'
+        scope: '/'
+        icons:
+            - src: 'images/icon.svg'
+              sizes: 0
+
+    serviceworker:
+        enabled: true
+        src: 'sw.js'
+        dest: '/sw.js'
+        scope: '/'
+        skip_waiting: false
+        workbox:
+            enabled: false

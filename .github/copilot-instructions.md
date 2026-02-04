@@ -2,11 +2,12 @@
 
 ## Architecture Overview
 
-This is a **Symfony Bundle monorepo** with two distinct parts:
+This is a **Symfony Bundle monorepo** with three distinct parts:
 - `packages/myframework-core/`: Reusable Symfony Bundle (`myframework/core`) providing auth, PWA, and push notifications
-- `apps/smoke/`: Symfony 7.4 LTS integration test app that exercises the bundle in a realistic environment
+- `apps/smoke/`: Symfony 7.4 LTS integration test app with strict PHPUnit config for catching deprecations
+- `apps/kohlkopf/`: Real-world production app demonstrating framework usage
 
-**Critical**: The bundle is linked via Composer **path repository** with `symlink=true` in the smoke app. Changes in `packages/myframework-core/src/` are **immediately active** in the smoke app's `vendor/myframework/core/` without `composer update`.
+**Critical**: The bundle is linked via Composer **path repository** with `symlink=true` in both apps. Changes in `packages/myframework-core/src/` are **immediately active** in `vendor/myframework/core/` without `composer update`.
 
 ## Key Conventions
 
@@ -17,7 +18,8 @@ This is a **Symfony Bundle monorepo** with two distinct parts:
 - Entity table prefix: `mf_` (e.g., `mf_user`, `mf_password_reset_token`)
 
 ### Strict PHP Standards
-- PHP 8.3+ required for bundle (`packages/myframework-core/composer.json`)
+- PHP 8.4+ required for bundle (`packages/myframework-core/composer.json`)
+- Apps may support earlier versions (smoke: 8.3+, kohlkopf: 8.4+) but always develop with latest
 - All files must have `declare(strict_types=1);` after opening tag
 - Use `final class` for all concrete classes unless explicitly designed for inheritance
 - Type hints required for all parameters and return types (no mixed/no docblock-only types)
@@ -41,10 +43,11 @@ Apps using the bundle configure via:
 
 ### Working on Bundle Features
 1. Make changes in `packages/myframework-core/src/`
-2. Changes are **instantly available** in smoke app due to symlink
-3. Test integration: `cd apps/smoke && php bin/console [command]`
-4. Run bundle unit tests: `cd packages/myframework-core && vendor/bin/phpunit`
-5. Run smoke app tests: `cd apps/smoke && php vendor/bin/phpunit`
+2. Changes are **instantly available** in both apps due to symlink
+3. Test in smoke app: `cd apps/smoke && php bin/console [command]`
+4. Test in real app: `cd apps/kohlkopf && php bin/console [command]`
+5. Run bundle unit tests: `cd packages/myframework-core && vendor/bin/phpunit`
+6. Run smoke app tests: `cd apps/smoke && php vendor/bin/phpunit`
 
 ### Testing Strategy
 - **Bundle tests** (`packages/myframework-core/tests/`): Minimal unit tests for bundle logic
@@ -145,7 +148,7 @@ Create `config/packages/pwa.yaml`:
 ```yaml
 pwa:
     asset_compiler: false
-    
+
     manifest:
         enabled: true
         public_url: '/site.webmanifest'
@@ -161,7 +164,7 @@ pwa:
             - src: '/icon.svg'
               sizes: [192, 512]
               purpose: 'any maskable'
-    
+
     serviceworker:
         enabled: true
         dest: '/sw.js'
@@ -432,9 +435,9 @@ app.register('myframework--pullrefresh', PullrefreshController);
 
 ## Known Quirks
 
-1. **Different symlink behavior**: Root workspace uses `symlink=false`, smoke app uses `symlink=true`. Work in smoke app for live development.
+1. **Symlink behavior**: Both smoke and kohlkopf apps use `symlink=true` for live development. Changes in the bundle are immediately available without `composer update`.
 
-2. **PHP version mismatch potential**: Smoke app allows `>=8.2`, but bundle requires `^8.3`. Always use PHP 8.3+ to avoid runtime surprises.
+2. **PHP version differences**: Bundle requires PHP 8.4+, smoke app allows 8.3+. Always use PHP 8.4+ to avoid compatibility issues.
 
 3. **Vendor path assumptions**: Some configs reference `vendor/myframework/core/...` directly, which assumes standard Composer vendor directory structure.
 

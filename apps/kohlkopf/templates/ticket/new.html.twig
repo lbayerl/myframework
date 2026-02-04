@@ -1,0 +1,173 @@
+{% extends '@MyFrameworkCore/base_home.html.twig' %}
+
+{% block title %}Ticket hinzufügen{% endblock %}
+
+{% block page_title %}Ticket hinzufügen{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    {# Concert Info Header #}
+    <div class="card mb-3 bg-light">
+        <div class="card-body py-2">
+            <div class="d-flex align-items-center">
+                <div class="me-3 fs-4">🎸</div>
+                <div>
+                    <div class="fw-bold">{{ concert.title }}</div>
+                    <div class="small text-muted">
+                        {{ concert.whenAt|date('d.m.Y, H:i') }} · {{ concert.whereText }}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# Ticket Form #}
+    <div class="card shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-ticket-perforated me-2"></i>Neues Ticket</h6>
+        </div>
+        <div class="card-body">
+            {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
+            
+            {# Ticket Type - Radio buttons styled as cards #}
+            <div class="mb-4">
+                {{ form_label(form.type) }}
+                <div class="ticket-type-options mt-2">
+                    {% for child in form.type %}
+                        <div class="form-check ticket-type-option mb-2">
+                            <input type="radio" 
+                                   id="{{ child.vars.id }}" 
+                                   name="{{ child.vars.full_name }}" 
+                                   value="{{ child.vars.value }}"
+                                   class="form-check-input" 
+                                   {{ child.vars.checked ? 'checked' : '' }}>
+                            <label class="form-check-label d-block p-3 border rounded cursor-pointer" for="{{ child.vars.id }}">
+                                {{ child.vars.label }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                    {# Render the actual widget to prevent duplicate rendering by form_end #}
+                    <div class="d-none">{{ form_widget(form.type) }}</div>
+                </div>
+                {{ form_errors(form.type) }}
+            </div>
+            
+            {# Price #}
+            <div class="mb-4">
+                {{ form_label(form.price) }}
+                <div class="input-group">
+                    {{ form_widget(form.price, {'attr': {'class': 'form-control form-control-lg', 'inputmode': 'decimal'}}) }}
+                </div>
+                {{ form_errors(form.price) }}
+                <div class="form-text">Leer lassen, wenn kostenlos oder unbekannt.</div>
+            </div>
+            
+            {# Owner Selection #}
+            <div class="mb-4">
+                {{ form_label(form.ownerId) }}
+                {{ form_widget(form.ownerId, {'attr': {'class': 'form-select form-select-lg'}}) }}
+                {{ form_errors(form.ownerId) }}
+                <div class="form-text">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Wer wird mit diesem Ticket zum Konzert gehen?
+                </div>
+            </div>
+            
+            {# Purchaser Selection #}
+            <div class="mb-4">
+                {{ form_label(form.purchaserId) }}
+                {{ form_widget(form.purchaserId, {'attr': {'class': 'form-select form-select-lg'}}) }}
+                {{ form_errors(form.purchaserId) }}
+                <div class="form-text">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Wer hat dieses Ticket bezahlt?
+                </div>
+            </div>
+            
+            {# Payment Hint - shown dynamically #}
+            <div id="payment-hint" class="alert alert-info d-none mb-4">
+                <i class="bi bi-info-circle me-2"></i>
+                <span id="payment-hint-text"></span>
+            </div>
+            
+            {# Seat (optional) #}
+            <div class="mb-4">
+                {{ form_label(form.seat) }}
+                {{ form_widget(form.seat, {'attr': {'class': 'form-control'}}) }}
+                {{ form_errors(form.seat) }}
+            </div>
+            
+            {# Buttons #}
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-lg me-2"></i>Ticket speichern
+                </button>
+                <a href="{{ path('concert_show', {id: concert.id}) }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-lg me-2"></i>Abbrechen
+                </a>
+            </div>
+            
+            {{ form_end(form) }}
+        </div>
+    </div>
+</div>
+
+<style>
+.ticket-type-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.ticket-type-option label {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ticket-type-option input[type="radio"]:checked + label {
+    border-color: var(--bs-primary) !important;
+    background-color: rgba(var(--bs-primary-rgb), 0.1);
+    box-shadow: 0 0 0 2px var(--bs-primary);
+}
+
+.ticket-type-option label:hover {
+    border-color: var(--bs-primary) !important;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ownerSelect = document.getElementById('{{ form.ownerId.vars.id }}');
+    const purchaserSelect = document.getElementById('{{ form.purchaserId.vars.id }}');
+    const paymentHint = document.getElementById('payment-hint');
+    const paymentHintText = document.getElementById('payment-hint-text');
+    
+    function updatePaymentHint() {
+        const ownerId = ownerSelect.value;
+        const purchaserId = purchaserSelect.value;
+        
+        if (ownerId && purchaserId && ownerId !== purchaserId) {
+            const ownerName = ownerSelect.options[ownerSelect.selectedIndex].text;
+            const purchaserName = purchaserSelect.options[purchaserSelect.selectedIndex].text;
+            paymentHintText.textContent = `Da ${purchaserName} das Ticket gekauft hat, aber es ${ownerName} gehört, wird eine offene Zahlung erstellt.`;
+            paymentHint.classList.remove('d-none');
+        } else {
+            paymentHint.classList.add('d-none');
+        }
+    }
+    
+    if (ownerSelect && purchaserSelect) {
+        ownerSelect.addEventListener('change', updatePaymentHint);
+        purchaserSelect.addEventListener('change', updatePaymentHint);
+        
+        // Initial check
+        updatePaymentHint();
+    }
+});
+</script>
+{% endblock %}

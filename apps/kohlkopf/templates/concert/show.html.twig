@@ -1,0 +1,279 @@
+{% extends '@MyFrameworkCore/base_home.html.twig' %}
+
+{% block title %}{{ concert.title }}{% endblock %}
+
+{% block page_title %}{{ concert.title }}{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+    {# Header Card - Concert Info #}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-body">
+            {# Status Badge #}
+            {% if concert.status.value == 'CANCELLED' %}
+                <div class="alert alert-danger py-2 mb-3">
+                    <i class="bi bi-x-circle-fill me-2"></i>Dieses Konzert wurde abgesagt
+                </div>
+            {% endif %}
+
+            {# Concert Details #}
+            <div class="d-flex align-items-start mb-3">
+                <div class="flex-grow-1">
+                    <h4 class="mb-1">🎸 {{ concert.title }}</h4>
+                    <div class="text-muted">
+                        <div class="mb-1">
+                            <i class="bi bi-calendar-event me-2"></i>
+                            <strong>{{ concert.whenAt|date('d.m.Y') }}</strong>, {{ concert.whenAt|date('H:i') }} Uhr
+                        </div>
+                        <div>
+                            <i class="bi bi-geo-alt me-2"></i>{{ concert.whereText }}
+                        </div>
+                    </div>
+                </div>
+                {% if canEdit %}
+                    <a href="{{ path('concert_edit', {id: concert.id}) }}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                {% endif %}
+            </div>
+
+            {# Comment #}
+            {% if concert.comment %}
+                <div class="mb-3 p-3 bg-light rounded">
+                    <i class="bi bi-chat-quote me-2"></i>„{{ concert.comment }}"
+                </div>
+            {% endif %}
+
+            {# External Link #}
+            {% if concert.externalLink %}
+                <a href="{{ concert.externalLink }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm w-100">
+                    <i class="bi bi-box-arrow-up-right me-2"></i>Tickets / Mehr Infos
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    {# Attendance Section #}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-white">
+            <h6 class="mb-0"><i class="bi bi-person-check me-2"></i>Deine Teilnahme</h6>
+        </div>
+        <div class="card-body">
+            <div class="d-flex flex-wrap gap-2" id="attendance-buttons" data-concert-id="{{ concert.id }}">
+                <button type="button" 
+                        class="btn flex-fill attendance-btn {{ userStatus.value|default('') == 'ATTENDING' ? 'btn-success' : 'btn-outline-success' }}"
+                        data-status="ATTENDING">
+                    <i class="bi bi-check-circle me-1"></i>Ich bin dabei!
+                </button>
+                <button type="button" 
+                        class="btn flex-fill attendance-btn {{ userStatus.value|default('') == 'INTERESTED' ? 'btn-primary' : 'btn-outline-primary' }}"
+                        data-status="INTERESTED">
+                    <i class="bi bi-star me-1"></i>Interessiert
+                </button>
+                <button type="button" 
+                        class="btn flex-fill attendance-btn {{ userStatus.value|default('') == 'DECLINED' ? 'btn-secondary' : 'btn-outline-secondary' }}"
+                        data-status="DECLINED">
+                    <i class="bi bi-x-circle me-1"></i>Absagen
+                </button>
+            </div>
+        </div>
+    </div>
+
+    {# Attendees List #}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="bi bi-people me-2"></i>Wer kommt mit?
+                <span class="badge bg-success ms-1">{{ attendingCount }}</span>
+                {% if interestedCount > 0 %}
+                    <span class="badge bg-primary ms-1">{{ interestedCount }} interessiert</span>
+                {% endif %}
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <turbo-frame id="attendee-list">
+                {% include 'attendee/_list.html.twig' with {attendees: attendees} %}
+            </turbo-frame>
+        </div>
+    </div>
+
+    {# Tickets Section #}
+    <div class="card mb-3 shadow-sm">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="bi bi-ticket-perforated me-2"></i>Tickets
+                <span class="badge bg-secondary ms-1">{{ tickets|length }}</span>
+            </h6>
+            <a href="{{ path('ticket_new', {concertId: concert.id}) }}" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-lg me-1"></i>Hinzufügen
+            </a>
+        </div>
+        <div class="card-body p-0">
+            <turbo-frame id="ticket-list">
+                {% include 'ticket/_list.html.twig' with {tickets: tickets, unpaidTickets: unpaidTickets, concert: concert, currentUser: currentUser} %}
+            </turbo-frame>
+        </div>
+    </div>
+
+    {# Back button #}
+    <div class="d-grid">
+        <a href="{{ path('app_home') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-2"></i>Zurück zur Übersicht
+        </a>
+    </div>
+</div>
+
+{# JavaScript for attendance status updates #}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('attendance-buttons');
+    if (!container) return;
+
+    const concertId = container.dataset.concertId;
+    const buttons = container.querySelectorAll('.attendance-btn');
+
+    buttons.forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const status = this.dataset.status;
+            
+            try {
+                const response = await fetch(`/concert/${concertId}/attendee/status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ status: status })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update button states
+                    buttons.forEach(b => {
+                        const btnStatus = b.dataset.status;
+                        const isActive = btnStatus === status;
+                        
+                        // Reset all buttons
+                        b.classList.remove('btn-success', 'btn-primary', 'btn-secondary');
+                        b.classList.remove('btn-outline-success', 'btn-outline-primary', 'btn-outline-secondary');
+                        
+                        if (isActive) {
+                            // Active button gets filled style
+                            if (btnStatus === 'ATTENDING') b.classList.add('btn-success');
+                            else if (btnStatus === 'INTERESTED') b.classList.add('btn-primary');
+                            else b.classList.add('btn-secondary');
+                        } else {
+                            // Inactive buttons get outline style
+                            if (btnStatus === 'ATTENDING') b.classList.add('btn-outline-success');
+                            else if (btnStatus === 'INTERESTED') b.classList.add('btn-outline-primary');
+                            else b.classList.add('btn-outline-secondary');
+                        }
+                    });
+
+                    // Show toast
+                    if (typeof showToast === 'function') {
+                        showToast(data.message, 'success');
+                    }
+
+                    // Update attendee list with returned HTML
+                    if (data.html) {
+                        const frame = document.getElementById('attendee-list');
+                        if (frame) {
+                            frame.innerHTML = data.html;
+                        }
+                    }
+                } else {
+                    if (typeof showToast === 'function') {
+                        showToast(data.error || 'Fehler', 'error');
+                    }
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (typeof showToast === 'function') {
+                    showToast('Verbindungsfehler', 'error');
+                }
+            }
+        });
+    });
+});
+
+// Function to mark ticket as paid
+async function markTicketPaid(concertId, ticketId, button) {
+    try {
+        const response = await fetch(`/concert/${concertId}/ticket/${ticketId}/pay`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Update UI
+            const ticketCard = button.closest('.ticket-card');
+            if (ticketCard) {
+                const badge = ticketCard.querySelector('.payment-badge');
+                if (badge) {
+                    badge.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Bezahlt';
+                    badge.classList.remove('text-warning');
+                    badge.classList.add('text-success');
+                }
+                button.remove();
+            }
+            
+            if (typeof showToast === 'function') {
+                showToast(data.message, 'success');
+            }
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.error || 'Fehler', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        if (typeof showToast === 'function') {
+            showToast('Verbindungsfehler', 'error');
+        }
+    }
+}
+
+// Function to delete ticket
+async function deleteTicket(concertId, ticketId, button) {
+    if (!confirm('Ticket wirklich löschen?')) return;
+
+    try {
+        const response = await fetch(`/concert/${concertId}/ticket/${ticketId}/delete`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Remove ticket card from DOM
+            const ticketCard = button.closest('.ticket-card');
+            if (ticketCard) {
+                ticketCard.remove();
+            }
+            
+            if (typeof showToast === 'function') {
+                showToast(data.message, 'success');
+            }
+        } else {
+            if (typeof showToast === 'function') {
+                showToast(data.error || 'Fehler', 'error');
+            }
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        if (typeof showToast === 'function') {
+            showToast('Verbindungsfehler', 'error');
+        }
+    }
+}
+</script>
+{% endblock %}

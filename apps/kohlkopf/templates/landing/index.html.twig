@@ -1,0 +1,19 @@
+{% extends '@MyFrameworkCore/base_auth.html.twig' %}
+
+{% block title %}Willkommen bei Kohlkopf{% endblock %}
+
+{% block content %}
+    <div class="text-center py-5">
+        <h1 class="display-4 mb-4">🎵 Kohlkopf</h1>
+        <p class="lead mb-4">Verwalte deine Konzerte und Tickets mit Freunden</p>
+        
+        <div class="d-grid gap-3" style="max-width: 400px; margin: 0 auto;">
+            <a href="{{ path('myframework_auth_login') }}" class="btn btn-primary btn-lg">Anmelden</a>
+            <a href="{{ path('myframework_auth_register') }}" class="btn btn-outline-primary btn-lg">Registrieren</a>
+        </div>
+
+        <div class="mt-4">
+            <a href="{{ path('myframework_auth_reset_password_request') }}" class="text-muted">Passwort vergessen?</a>
+        </div>
+    </div>
+{% endblock %}

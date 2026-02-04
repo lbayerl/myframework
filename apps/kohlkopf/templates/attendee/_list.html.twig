@@ -1,0 +1,41 @@
+{# Partial: Attendee List #}
+{% if attendees|length > 0 %}
+    <ul class="list-group list-group-flush">
+        {% for attendee in attendees %}
+            <li class="list-group-item d-flex align-items-center {{ attendee.status.value == 'DECLINED' ? 'text-muted bg-light' : '' }}">
+                <div class="me-3">
+                    {% if attendee.status.value == 'ATTENDING' %}
+                        <span class="badge bg-success rounded-pill"><i class="bi bi-check"></i></span>
+                    {% elseif attendee.status.value == 'INTERESTED' %}
+                        <span class="badge bg-primary rounded-pill"><i class="bi bi-star"></i></span>
+                    {% elseif attendee.status.value == 'DECLINED' %}
+                        <span class="badge bg-secondary rounded-pill"><i class="bi bi-x"></i></span>
+                    {% else %}
+                        <span class="badge bg-info rounded-pill"><i class="bi bi-clock"></i></span>
+                    {% endif %}
+                </div>
+                <div class="flex-grow-1">
+                    <span class="{{ attendee.status.value == 'DECLINED' ? 'text-decoration-line-through' : '' }}">
+                        {{ attendee.user.displayName|default(attendee.user.email) }}
+                    </span>
+                </div>
+                <div class="text-muted small">
+                    {% if attendee.status.value == 'ATTENDING' %}
+                        <span class="text-success">Kommt</span>
+                    {% elseif attendee.status.value == 'INTERESTED' %}
+                        <span class="text-primary">Interessiert</span>
+                    {% elseif attendee.status.value == 'DECLINED' %}
+                        <span>Kann nicht</span>
+                    {% else %}
+                        <span>{{ attendee.status.value }}</span>
+                    {% endif %}
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="p-4 text-center text-muted">
+        <i class="bi bi-people fs-1 d-block mb-2"></i>
+        <p class="mb-0">Noch keine Teilnehmer. Sei der Erste!</p>
+    </div>
+{% endif %}

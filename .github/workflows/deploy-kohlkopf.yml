@@ -71,8 +71,9 @@ jobs:
             # Deploy
             cd $DEPLOY_PATH
             
-            echo "Removing local path repository from composer.json..."
-            composer config --unset repositories.myframework-core-local || true
+            echo "Preparing for deployment..."
+            rm -f composer.lock
+            composer config --unset repositories.0 || true
             
             echo "Installing dependencies..."
             composer install --no-dev --optimize-autoloader

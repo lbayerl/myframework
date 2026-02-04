@@ -53,7 +53,7 @@ jobs:
             set -e
             
             DEPLOY_PATH="/var/www/kohlkopf"
-            BACKUP_PATH="/var/backups/kohlkopf/$(date +%Y%m%d_%H%M%S)"
+            BACKUP_PATH="$HOME/kohlkopf-backups/$(date +%Y%m%d_%H%M%S)"
             
             # Backup current state
             if [ -d "$DEPLOY_PATH/vendor" ]; then

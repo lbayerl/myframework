@@ -1881,13 +1881,13 @@
             "dist": {
                 "type": "path",
                 "url": "../../packages/myframework-core",
-                "reference": "a80c0448c847f16b46ec2df393c681e7cc02da85"
+                "reference": "10b1b0b532408d6cdc913957f8423322e82017e3"
             },
             "require": {
                 "doctrine/doctrine-bundle": "^3.2",
                 "doctrine/orm": "^3.6",
                 "minishlink/web-push-bundle": "^6.0",
-                "php": "^8.3",
+                "php": "^8.4",
                 "spomky-labs/pwa-bundle": "^1.0",
                 "symfony/asset-mapper": "^7.4",
                 "symfony/config": "^7.4",
@@ -1896,6 +1896,7 @@
                 "symfony/framework-bundle": "^7.4",
                 "symfony/http-kernel": "^7.4",
                 "symfony/mailer": "^7.4",
+                "symfony/rate-limiter": "^7.4",
                 "symfony/security-bundle": "^7.4",
                 "symfony/security-csrf": "^7.4",
                 "symfony/twig-bundle": "^7.4",
@@ -1931,7 +1932,7 @@
                 }
             },
             "license": [
-                "proprietary"
+                "MIT"
             ],
             "description": "MyFramework Core Bundle (Symfony 7.4): Auth (Register/Login/Verify/Reset), Push, PWA, UI/Templates",
             "keywords": [
@@ -6851,6 +6852,80 @@
             ],
             "support": {
                 "source": "https://github.com/symfony/property-info/tree/v7.4.5"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nicolas-grekas",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2026-01-27T16:16:02+00:00"
+        },
+        {
+            "name": "symfony/rate-limiter",
+            "version": "v7.4.5",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/rate-limiter.git",
+                "reference": "7e275c57293cd2d894e126cc68855ecd82bcd173"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/rate-limiter/zipball/7e275c57293cd2d894e126cc68855ecd82bcd173",
+                "reference": "7e275c57293cd2d894e126cc68855ecd82bcd173",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.2",
+                "symfony/options-resolver": "^7.3|^8.0"
+            },
+            "require-dev": {
+                "psr/cache": "^1.0|^2.0|^3.0",
+                "symfony/lock": "^6.4|^7.0|^8.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Symfony\\Component\\RateLimiter\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Wouter de Jong",
+                    "email": "wouter@wouterj.nl"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Provides a Token Bucket implementation to rate limit input and output in your application",
+            "homepage": "https://symfony.com",
+            "keywords": [
+                "limiter",
+                "rate-limiter"
+            ],
+            "support": {
+                "source": "https://github.com/symfony/rate-limiter/tree/v7.4.5"
             },
             "funding": [
                 {

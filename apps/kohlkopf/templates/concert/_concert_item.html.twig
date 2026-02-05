@@ -93,7 +93,8 @@
         {# Right side: Date/Time #}
         <div class="text-end flex-shrink-0 ms-3">
             <div class="fw-semibold {{ isPast ? 'text-muted' : '' }}">
-                {{ concert.whenAt|date('d.m.Y') }}
+                {% set weekdaysDE = {'Mon': 'Mo', 'Tue': 'Di', 'Wed': 'Mi', 'Thu': 'Do', 'Fri': 'Fr', 'Sat': 'Sa', 'Sun': 'So'} %}
+                {{ weekdaysDE[concert.whenAt|date('D')] }}, {{ concert.whenAt|date('d.m.y') }}
             </div>
             <div class="text-muted small">
                 {{ concert.whenAt|date('H:i') }} Uhr

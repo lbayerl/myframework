@@ -1,0 +1,33 @@
+{#
+    Filter/Tab-Leiste für Konzert-Listen
+    
+    Variablen:
+    - activeView: string - 'upcoming', 'mine', 'past', 'all' (required)
+#}
+
+<ul class="nav nav-pills mb-3">
+    <li class="nav-item">
+        <a class="nav-link {{ activeView == 'upcoming' ? 'active' : '' }}" 
+           href="{{ path('concert_index') }}">
+            <i class="bi bi-calendar-event me-1"></i>Kommende
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ activeView == 'mine' ? 'active' : '' }}" 
+           href="{{ path('concert_mine') }}">
+            <i class="bi bi-person-check me-1"></i>Meine
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ activeView == 'past' ? 'active' : '' }}" 
+           href="{{ path('concert_past') }}">
+            <i class="bi bi-clock-history me-1"></i>Vergangene
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {{ activeView == 'all' ? 'active' : '' }}" 
+           href="{{ path('concert_all') }}">
+            <i class="bi bi-list-ul me-1"></i>Alle
+        </a>
+    </li>
+</ul>

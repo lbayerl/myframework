@@ -9,12 +9,12 @@
 <div class="row">
     <div class="col-md-6 mb-3">
         {{ form_label(form.date) }}
-        {{ form_widget(form.date, { attr: { class: 'form-control' } }) }}
+        {{ form_widget(form.date, { attr: { class: 'form-control', type: 'date' } }) }}
         {{ form_errors(form.date) }}
     </div>
     <div class="col-md-6 mb-3">
         {{ form_label(form.time) }}
-        {{ form_widget(form.time, { attr: { class: 'form-control' } }) }}
+        {{ form_widget(form.time, { attr: { class: 'form-control', type: 'time' } }) }}
         {{ form_errors(form.time) }}
     </div>
 </div>
@@ -45,7 +45,7 @@
 
 <div class="d-flex gap-2">
     <button class="btn btn-primary" type="submit">Speichern</button>
-    <a class="btn btn-secondary" href="{{ concert is defined ? path('concert_show', {id: concert.id}) : path('app_home') }}">Abbrechen</a>
+    <a class="btn btn-secondary" href="{{ concert is defined ? path('concert_show', {id: concert.id}) : path('concert_index') }}">Abbrechen</a>
 </div>
 
 {{ form_end(form) }}

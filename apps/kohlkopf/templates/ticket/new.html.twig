@@ -1,4 +1,4 @@
-{% extends '@MyFrameworkCore/base_home.html.twig' %}
+{% extends 'base.html.twig' %}
 
 {% block title %}Ticket hinzufügen{% endblock %}
 
@@ -28,18 +28,18 @@
         </div>
         <div class="card-body">
             {{ form_start(form, {'attr': {'novalidate': 'novalidate'}}) }}
-            
+
             {# Ticket Type - Radio buttons styled as cards #}
             <div class="mb-4">
                 {{ form_label(form.type) }}
                 <div class="ticket-type-options mt-2">
                     {% for child in form.type %}
                         <div class="form-check ticket-type-option mb-2">
-                            <input type="radio" 
-                                   id="{{ child.vars.id }}" 
-                                   name="{{ child.vars.full_name }}" 
+                            <input type="radio"
+                                   id="{{ child.vars.id }}"
+                                   name="{{ child.vars.full_name }}"
                                    value="{{ child.vars.value }}"
-                                   class="form-check-input" 
+                                   class="form-check-input"
                                    {{ child.vars.checked ? 'checked' : '' }}>
                             <label class="form-check-label d-block p-3 border rounded cursor-pointer" for="{{ child.vars.id }}">
                                 {{ child.vars.label }}
@@ -51,7 +51,7 @@
                 </div>
                 {{ form_errors(form.type) }}
             </div>
-            
+
             {# Price #}
             <div class="mb-4">
                 {{ form_label(form.price) }}
@@ -61,7 +61,7 @@
                 {{ form_errors(form.price) }}
                 <div class="form-text">Leer lassen, wenn kostenlos oder unbekannt.</div>
             </div>
-            
+
             {# Owner Selection #}
             <div class="mb-4">
                 {{ form_label(form.ownerId) }}
@@ -72,7 +72,7 @@
                     Wer wird mit diesem Ticket zum Konzert gehen?
                 </div>
             </div>
-            
+
             {# Purchaser Selection #}
             <div class="mb-4">
                 {{ form_label(form.purchaserId) }}
@@ -83,20 +83,20 @@
                     Wer hat dieses Ticket bezahlt?
                 </div>
             </div>
-            
+
             {# Payment Hint - shown dynamically #}
             <div id="payment-hint" class="alert alert-info d-none mb-4">
                 <i class="bi bi-info-circle me-2"></i>
                 <span id="payment-hint-text"></span>
             </div>
-            
+
             {# Seat (optional) #}
             <div class="mb-4">
                 {{ form_label(form.seat) }}
                 {{ form_widget(form.seat, {'attr': {'class': 'form-control'}}) }}
                 {{ form_errors(form.seat) }}
             </div>
-            
+
             {# Buttons #}
             <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary btn-lg">
@@ -106,7 +106,7 @@
                     <i class="bi bi-x-lg me-2"></i>Abbrechen
                 </a>
             </div>
-            
+
             {{ form_end(form) }}
         </div>
     </div>
@@ -146,11 +146,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const purchaserSelect = document.getElementById('{{ form.purchaserId.vars.id }}');
     const paymentHint = document.getElementById('payment-hint');
     const paymentHintText = document.getElementById('payment-hint-text');
-    
+
     function updatePaymentHint() {
         const ownerId = ownerSelect.value;
         const purchaserId = purchaserSelect.value;
-        
+
         if (ownerId && purchaserId && ownerId !== purchaserId) {
             const ownerName = ownerSelect.options[ownerSelect.selectedIndex].text;
             const purchaserName = purchaserSelect.options[purchaserSelect.selectedIndex].text;
@@ -160,11 +160,11 @@ document.addEventListener('DOMContentLoaded', function() {
             paymentHint.classList.add('d-none');
         }
     }
-    
+
     if (ownerSelect && purchaserSelect) {
         ownerSelect.addEventListener('change', updatePaymentHint);
         purchaserSelect.addEventListener('change', updatePaymentHint);
-        
+
         // Initial check
         updatePaymentHint();
     }

@@ -1,0 +1,106 @@
+{#
+    Wiederverwendbares Konzert-Listenelement
+    
+    Variablen:
+    - concert: Concert entity (required)
+    - userAttendance: AttendeeStatus|null - Status des aktuellen Users (optional)
+    - hasTicket: bool - Ob der User ein Ticket hat (optional, default: null = nicht anzeigen)
+    - showStatus: bool - Ob Cancelled/Draft Badge angezeigt werden soll (optional, default: true)
+    - attendingCount: int|null - Anzahl der Teilnehmer (optional)
+#}
+
+{% set showStatus = showStatus ?? true %}
+{% set isPast = concert.whenAt < date() %}
+{% set isCancelled = concert.status.value == 'CANCELLED' %}
+{% set isDraft = concert.status.value == 'DRAFT' %}
+
+<a href="{{ path('concert_show', {'id': concert.id}) }}" 
+   class="list-group-item list-group-item-action {{ isCancelled ? 'list-group-item-secondary' : '' }} {{ isPast ? 'opacity-75' : '' }}">
+    <div class="d-flex w-100 justify-content-between align-items-start">
+        {# Artist Image (if available) #}
+        {% if concert.artistImage %}
+            <div class="flex-shrink-0 me-3">
+                <img src="{{ concert.artistImage }}" 
+                     alt="{{ concert.title }}" 
+                     class="rounded" 
+                     style="width: 48px; height: 48px; object-fit: cover;"
+                     loading="lazy">
+            </div>
+        {% endif %}
+
+        {# Left side: Title, Location, Comment #}
+        <div class="me-auto">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <h6 class="mb-0 fw-bold {{ isCancelled ? 'text-decoration-line-through' : '' }}">
+                    {{ concert.title }}
+                </h6>
+                
+                {# Status Badges #}
+                {% if showStatus %}
+                    {% if isCancelled %}
+                        <span class="badge bg-danger">Abgesagt</span>
+                    {% elseif isDraft %}
+                        <span class="badge bg-warning text-dark">Entwurf</span>
+                    {% endif %}
+                {% endif %}
+                
+                {# Attendance Badge #}
+                {% if userAttendance is defined and userAttendance %}
+                    {% if userAttendance == 'ATTENDING' %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i>Dabei</span>
+                    {% elseif userAttendance == 'INTERESTED' %}
+                        <span class="badge bg-primary"><i class="bi bi-star-fill me-1"></i>Interessiert</span>
+                    {% endif %}
+                {% endif %}
+                
+                {# Ticket Badge #}
+                {% if hasTicket is defined and hasTicket is not null %}
+                    {% if hasTicket %}
+                        <span class="badge bg-info text-dark"><i class="bi bi-ticket-perforated-fill me-1"></i>Ticket</span>
+                    {% else %}
+                        <span class="badge bg-outline-secondary border"><i class="bi bi-ticket-perforated me-1"></i>Kein Ticket</span>
+                    {% endif %}
+                {% endif %}
+            </div>
+            
+            <div class="text-muted small mt-1">
+                <i class="bi bi-geo-alt me-1"></i>{{ concert.whereText }}
+            </div>
+            
+            {% if concert.comment %}
+                <div class="small text-muted mt-1">
+                    <i class="bi bi-chat-text me-1"></i>{{ concert.comment|u.truncate(80, '…') }}
+                </div>
+            {% endif %}
+            
+            {# Attendee counts #}
+            {% if (attendingCount is defined and attendingCount > 0) or (interestedCount is defined and interestedCount > 0) %}
+                <div class="small mt-1 d-flex gap-2">
+                    {% if attendingCount is defined and attendingCount > 0 %}
+                        <span class="text-success">
+                            <i class="bi bi-check-circle-fill me-1"></i>{{ attendingCount }} dabei
+                        </span>
+                    {% endif %}
+                    {% if interestedCount is defined and interestedCount > 0 %}
+                        <span class="text-primary">
+                            <i class="bi bi-star-fill me-1"></i>{{ interestedCount }} interessiert
+                        </span>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        
+        {# Right side: Date/Time #}
+        <div class="text-end flex-shrink-0 ms-3">
+            <div class="fw-semibold {{ isPast ? 'text-muted' : '' }}">
+                {{ concert.whenAt|date('d.m.Y') }}
+            </div>
+            <div class="text-muted small">
+                {{ concert.whenAt|date('H:i') }} Uhr
+            </div>
+            {% if isPast %}
+                <div class="small text-muted fst-italic">vergangen</div>
+            {% endif %}
+        </div>
+    </div>
+</a>

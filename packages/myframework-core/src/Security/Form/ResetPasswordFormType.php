@@ -9,6 +9,8 @@ use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Constraints\NotCompromisedPassword;
+use Symfony\Component\Validator\Constraints\PasswordStrength;
 
 final class ResetPasswordFormType extends AbstractType
 {
@@ -23,6 +25,8 @@ final class ResetPasswordFormType extends AbstractType
             'constraints' => [
                 new Assert\NotBlank(),
                 new Assert\Length(min: 8, max: 4096),
+                new PasswordStrength(minScore: PasswordStrength::STRENGTH_MEDIUM),
+                new NotCompromisedPassword(),
             ],
         ]);
     }

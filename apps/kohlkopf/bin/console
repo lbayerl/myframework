@@ -4,6 +4,9 @@
 use App\Kernel;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 
+// Enforce consistent timezone for all date operations
+date_default_timezone_set('Europe/Berlin');
+
 if (!is_dir(dirname(__DIR__).'/vendor')) {
     throw new LogicException('Dependencies are missing. Try running "composer install".');
 }

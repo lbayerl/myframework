@@ -1,0 +1,6 @@
+my_framework_core:
+    ui:
+        app_name: 'Kohlköpfe'
+        primary_color: '198754'  # Bootstrap success green
+        home_route: 'concert_index'
+        # logo_path: 'images/logo.svg'  # Optional: Custom logo

@@ -11,8 +11,10 @@ use App\Form\ConcertType;
 use App\Repository\ConcertAttendeeRepository;
 use App\Repository\ConcertRepository;
 use App\Repository\TicketRepository;
+use App\Service\ArtistImageService;
 use Doctrine\ORM\EntityManagerInterface;
 use MyFramework\Core\Entity\User;
+use MyFramework\Core\Push\Service\PushService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -26,6 +28,8 @@ final class ConcertController extends AbstractController
     public function __construct(
         private readonly ConcertAttendeeRepository $attendeeRepo,
         private readonly TicketRepository $ticketRepo,
+        private readonly PushService $pushService,
+        private readonly ArtistImageService $artistImageService,
     ) {
     }
 
@@ -40,36 +44,34 @@ final class ConcertController extends AbstractController
         $concert->setCreatedBy($user);
 
         $form = $this->createForm(ConcertType::class, $concert);
-
-        // prefill unmapped date/time from entity (constructor set a sensible future placeholder)
-        if ($concert->getWhenAt() instanceof \DateTimeInterface) {
-            try {
-                $form->get('date')->setData($concert->getWhenAt()->format('Y-m-d'));
-                $form->get('time')->setData($concert->getWhenAt()->format('H:i'));
-            } catch (\Exception) {
-                // ignore; best-effort prefilling
-            }
-        }
-
         $form->handleRequest($request);
 
-        // Datum und Uhrzeit aus unmapped Feldern zusammenführen
-        if ($form->isSubmitted()) {
-            if ($form->isValid()) {
-                $date = $form->get('date')->getData();
-                $time = $form->get('time')->getData();
-                if ($date && $time) {
-                    $concert->setWhenAt(new \DateTime($date . 'T' . $time));
-                }
-                $concert->touch();
-                $em->persist($concert);
-                $em->flush();
+        if ($form->isSubmitted() && $form->isValid()) {
+            $concert->touch();
+            $em->persist($concert);
+            $em->flush();
 
-                $this->addFlash('success', 'Konzert wurde gespeichert.');
-                return $this->redirectToRoute('concert_show', ['id' => $concert->getId()]);
+            // Fetch artist image from Wikipedia (async-safe: runs after persist so we have ID)
+            $imagePath = $this->artistImageService->fetchAndStoreImage(
+                $concert->getTitle(),
+                $concert->getId()
+            );
+            if ($imagePath !== null) {
+                $concert->setArtistImage($imagePath);
+                $em->flush();
             }
 
-            // nur anzeigen, wenn Formular abgeschickt und ungültig
+            $this->pushService->sendToAll(
+                'Neues Konzert',
+                sprintf('%s am %s um %s', $concert->getTitle(), $concert->getWhenAt()->format('d.m.Y'), $concert->getWhenAt()->format('H:i')),
+                $this->generateUrl('concert_show', ['id' => $concert->getId()])
+            );
+
+            $this->addFlash('success', 'Konzert wurde gespeichert.');
+            return $this->redirectToRoute('concert_show', ['id' => $concert->getId()]);
+        }
+
+        if ($form->isSubmitted()) {
             $this->addFlash('error', 'Bitte prüfe die Eingaben.');
         }
 
@@ -87,38 +89,39 @@ final class ConcertController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
+        // Remember original title to detect changes
+        $originalTitle = $concert->getTitle();
+
         $form = $this->createForm(ConcertType::class, $concert);
-
-        // prefill unmapped date/time from entity
-        if ($concert->getWhenAt() instanceof \DateTimeInterface) {
-            try {
-                $form->get('date')->setData($concert->getWhenAt()->format('Y-m-d'));
-                $form->get('time')->setData($concert->getWhenAt()->format('H:i'));
-            } catch (\Exception) {
-                // ignore
-            }
-        }
-
         $form->handleRequest($request);
 
-        if ($form->isSubmitted()) {
-            if ($form->isValid()) {
-                $date = $form->get('date')->getData();
-                $time = $form->get('time')->getData();
-                if ($date && $time) {
-                    $concert->setWhenAt(new \DateTime($date . 'T' . $time));
-                }
-
-                // Konsistenz: wenn Status != CANCELLED, cancelledAt nullen
-                if ($concert->getStatus() !== ConcertStatus::CANCELLED) {
-                    $concert->setCancelledAt(null);
-                }
-                $concert->touch();
-                $em->flush();
-
-                $this->addFlash('success', 'Änderungen gespeichert.');
-                return $this->redirectToRoute('concert_show', ['id' => $concert->getId()]);
+        if ($form->isSubmitted() && $form->isValid()) {
+            // Konsistenz: wenn Status != CANCELLED, cancelledAt nullen
+            if ($concert->getStatus() !== ConcertStatus::CANCELLED) {
+                $concert->setCancelledAt(null);
             }
+
+            // If title changed, fetch new artist image
+            if ($concert->getTitle() !== $originalTitle) {
+                // Delete old image if exists
+                $this->artistImageService->deleteImage($concert->getArtistImage());
+
+                // Fetch new image
+                $imagePath = $this->artistImageService->fetchAndStoreImage(
+                    $concert->getTitle(),
+                    $concert->getId()
+                );
+                $concert->setArtistImage($imagePath);
+            }
+
+            $concert->touch();
+            $em->flush();
+
+            $this->addFlash('success', 'Änderungen gespeichert.');
+            return $this->redirectToRoute('concert_show', ['id' => $concert->getId()]);
+        }
+
+        if ($form->isSubmitted()) {
             $this->addFlash('error', 'Bitte prüfe die Eingaben.');
         }
 
@@ -128,7 +131,7 @@ final class ConcertController extends AbstractController
         ]);
     }
 
-    #[Route('/{id}', name: 'concert_show', methods: ['GET'])]
+    #[Route('/{id}', name: 'concert_show', methods: ['GET'], priority: -1)]
     public function show(Concert $concert): Response
     {
         /** @var User $user */
@@ -170,10 +173,114 @@ final class ConcertController extends AbstractController
     #[Route('', name: 'concert_index', methods: ['GET'])]
     public function index(ConcertRepository $concertRepository): Response
     {
-        $concerts = $concertRepository->findUpcoming();
+        $concertData = $concertRepository->findUpcomingWithCounts();
 
         return $this->render('concert/index.html.twig', [
-            'concerts' => $concerts,
+            'concertData' => $concertData,
+            'activeView' => 'upcoming',
+        ]);
+    }
+
+    #[Route('/mine', name: 'concert_mine', methods: ['GET'])]
+    public function mine(ConcertRepository $concertRepository): Response
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $concertData = $concertRepository->findUpcomingForUser($user->getId());
+
+        return $this->render('concert/mine.html.twig', [
+            'concertData' => $concertData,
+            'activeView' => 'mine',
+        ]);
+    }
+
+    #[Route('/past', name: 'concert_past', methods: ['GET'])]
+    public function past(ConcertRepository $concertRepository): Response
+    {
+        $concertData = $concertRepository->findPast();
+
+        return $this->render('concert/past.html.twig', [
+            'concertData' => $concertData,
+            'activeView' => 'past',
+        ]);
+    }
+
+    #[Route('/all', name: 'concert_all', methods: ['GET'])]
+    public function all(ConcertRepository $concertRepository): Response
+    {
+        $concertData = $concertRepository->findAll();
+
+        return $this->render('concert/all.html.twig', [
+            'concertData' => $concertData,
+            'activeView' => 'all',
+        ]);
+    }
+
+    #[Route('/{id}/calendar', name: 'concert_calendar', methods: ['GET'])]
+    public function exportCalendar(Concert $concert): Response
+    {
+        // iCalendar Datum-Format: YYYYMMDDTHHMMSS (in UTC oder mit TZID)
+        $start = $concert->getWhenAt();
+        $end = (clone $start)->modify('+3 hours'); // Standard-Dauer
+
+        // Format für iCal: YYYYMMDDTHHMMSSZ (UTC)
+        $dtStart = $start->format('Ymd\THis');
+        $dtEnd = $end->format('Ymd\THis');
+        $dtStamp = (new \DateTime())->format('Ymd\THis\Z');
+
+        // Escape-Funktion für iCal-Text (Kommas, Semikolons, Backslashes, Newlines)
+        $escape = fn(string $text): string => str_replace(
+            ['\\', ',', ';', "\n"],
+            ['\\\\', '\\,', '\\;', '\\n'],
+            $text
+        );
+
+        $summary = $escape($concert->getTitle());
+        $location = $escape($concert->getWhereText());
+        $description = $concert->getComment() ? $escape($concert->getComment()) : '';
+        if ($concert->getExternalLink()) {
+            $description .= ($description ? '\\n\\n' : '') . $escape($concert->getExternalLink());
+        }
+
+        $uid = 'concert-' . $concert->getId() . '@kohlkopf.local';
+
+        // iCalendar-Datei generieren
+        $ics = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Kohlkopf//Concert Export//DE',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
+            "UID:{$uid}",
+            "DTSTAMP:{$dtStamp}",
+            "DTSTART:{$dtStart}",
+            "DTEND:{$dtEnd}",
+            "SUMMARY:{$summary}",
+            "LOCATION:{$location}",
+        ];
+
+        if ($description) {
+            $ics[] = "DESCRIPTION:{$description}";
+        }
+
+        if ($concert->getExternalLink()) {
+            $ics[] = 'URL:' . $concert->getExternalLink();
+        }
+
+        $ics[] = 'END:VEVENT';
+        $ics[] = 'END:VCALENDAR';
+
+        $content = implode("\r\n", $ics);
+
+        // Dateiname: Konzert-Titel sanitized
+        $filename = preg_replace('/[^a-z0-9]+/i', '-', $concert->getTitle());
+        $filename = trim($filename, '-') . '.ics';
+
+        return new Response($content, 200, [
+            'Content-Type' => 'text/calendar; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
     }
 }

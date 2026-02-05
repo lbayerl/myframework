@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Kommende Konzerte{% endblock %}
+{% block title %}Meine Konzerte{% endblock %}
 
 {% block page_title %}Konzerte{% endblock %}
 
@@ -15,11 +15,18 @@
 
         {% include 'concert/_tabs.html.twig' with { activeView: activeView } %}
 
+        <div class="alert alert-light border mb-3">
+            <i class="bi bi-info-circle me-2"></i>
+            Konzerte, bei denen du als „Dabei" oder „Interessiert" markiert bist.
+        </div>
+
         {% if concertData is not empty %}
             <div class="list-group">
                 {% for item in concertData %}
                     {% include 'concert/_concert_item.html.twig' with { 
                         concert: item.concert,
+                        userAttendance: item.userAttendance,
+                        hasTicket: item.hasTicket,
                         attendingCount: item.attendingCount,
                         interestedCount: item.interestedCount,
                         showStatus: true
@@ -28,8 +35,10 @@
             </div>
         {% else %}
             <div class="alert alert-info">
-                Keine kommenden Konzerte gefunden.
-                <a href="{{ path('concert_new') }}" class="alert-link">Leg jetzt ein neues Konzert an!</a>
+                <i class="bi bi-calendar-x me-2"></i>
+                Du hast noch keine Konzerte als „Dabei" oder „Interessiert" markiert.
+                <br>
+                <a href="{{ path('concert_index') }}" class="alert-link">Schau dir die kommenden Konzerte an!</a>
             </div>
         {% endif %}
     </div>

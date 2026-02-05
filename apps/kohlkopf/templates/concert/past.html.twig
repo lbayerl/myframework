@@ -1,6 +1,6 @@
 {% extends 'base.html.twig' %}
 
-{% block title %}Kommende Konzerte{% endblock %}
+{% block title %}Vergangene Konzerte{% endblock %}
 
 {% block page_title %}Konzerte{% endblock %}
 
@@ -28,8 +28,8 @@
             </div>
         {% else %}
             <div class="alert alert-info">
-                Keine kommenden Konzerte gefunden.
-                <a href="{{ path('concert_new') }}" class="alert-link">Leg jetzt ein neues Konzert an!</a>
+                <i class="bi bi-clock-history me-2"></i>
+                Keine vergangenen Konzerte gefunden.
             </div>
         {% endif %}
     </div>

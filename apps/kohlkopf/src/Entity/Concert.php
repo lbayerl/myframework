@@ -71,6 +71,10 @@ final class Concert
     #[ORM\Column(type: Types::DATETIME_MUTABLE, nullable: true)]
     private ?\DateTime $cancelledAt = null;
 
+    /** Lokaler Pfad zum Künstlerbild (z.B. /images/artists/band-xyz.jpg) */
+    #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
+    private ?string $artistImage = null;
+
     #[ORM\OneToMany(targetEntity: ConcertAttendee::class, mappedBy: 'concert', cascade: ['persist', 'remove'])]
     private Collection $attendees;
 
@@ -202,6 +206,17 @@ final class Concert
     public function setCancelledAt(?\DateTime $dt): self
     {
         $this->cancelledAt = $dt;
+        return $this;
+    }
+
+    public function getArtistImage(): ?string
+    {
+        return $this->artistImage;
+    }
+
+    public function setArtistImage(?string $path): self
+    {
+        $this->artistImage = $path;
         return $this;
     }
 

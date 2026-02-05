@@ -25,7 +25,7 @@ security:
             form_login:
                 login_path: myframework_auth_login
                 check_path: myframework_auth_login
-                default_target_path: app_home
+                default_target_path: concert_index
                 username_parameter: _username
                 password_parameter: _password
                 enable_csrf: true

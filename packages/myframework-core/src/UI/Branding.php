@@ -10,6 +10,7 @@ final class Branding
         public readonly string $appName,
         public readonly string $primaryColor,
         public readonly ?string $logoPath,
+        public readonly string $homeRoute = 'app_home',
     ) {
     }
 }

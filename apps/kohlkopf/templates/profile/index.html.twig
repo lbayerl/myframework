@@ -1,0 +1,271 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Mein Profil - Kohlkopf{% endblock %}
+
+{% block page_title %}Mein Profil{% endblock %}
+
+{% block page_subtitle %}Persönliche Einstellungen und Benachrichtigungen{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        {# User Info Card #}
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="bi bi-person-circle"></i> Benutzerinformationen</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 2rem;">
+                            {{ app.user.email|first|upper }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small mb-0">E-Mail-Adresse</label>
+                        <div class="fw-semibold">{{ app.user.email }}</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small mb-0">E-Mail verifiziert</label>
+                        <div>
+                            {% if app.user.verified %}
+                                <span class="badge bg-success"><i class="bi bi-check-circle"></i> Verifiziert</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle"></i> Nicht verifiziert</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label text-muted small mb-0">Rollen</label>
+                        <div>
+                            {% for role in app.user.roles %}
+                                <span class="badge bg-secondary">{{ role }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# Push Notifications Card #}
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="bi bi-bell"></i> Push-Benachrichtigungen</h5>
+                </div>
+                <div class="card-body">
+                    <div id="notification-status" class="alert d-none mb-3" role="alert"></div>
+
+                    <div id="not-supported" class="alert alert-warning d-none">
+                        <strong><i class="bi bi-x-circle"></i> Nicht unterstützt:</strong> Dein Browser unterstützt keine Push-Benachrichtigungen.
+                    </div>
+
+                    <div id="permission-denied" class="alert alert-danger d-none">
+                        <strong><i class="bi bi-shield-x"></i> Berechtigung verweigert:</strong> Du hast Benachrichtigungen blockiert. Bitte aktiviere sie in deinen Browser-Einstellungen.
+                    </div>
+
+                    <div id="controls" class="d-none">
+                        <p class="text-muted">
+                            Bleibe auf dem Laufenden mit sofortigen Benachrichtigungen über Konzerte und wichtige Updates.
+                        </p>
+
+                        <div class="d-grid gap-2">
+                            <button id="subscribe-btn" class="btn btn-primary btn-lg d-none">
+                                <i class="bi bi-bell"></i> Benachrichtigungen aktivieren
+                            </button>
+
+                            <button id="unsubscribe-btn" class="btn btn-outline-secondary btn-lg d-none">
+                                <i class="bi bi-bell-slash"></i> Benachrichtigungen deaktivieren
+                            </button>
+
+                            <button id="test-btn" class="btn btn-success d-none">
+                                <i class="bi bi-send"></i> Test-Benachrichtigung senden
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0"><i class="bi bi-info-circle"></i> So funktioniert es</h5>
+                </div>
+                <div class="card-body">
+                    <ol class="mb-0">
+                        <li class="mb-2">Klicke auf "Benachrichtigungen aktivieren"</li>
+                        <li class="mb-2">Erlaube Benachrichtigungen, wenn dein Browser fragt</li>
+                        <li class="mb-2">Nutze "Test-Benachrichtigung senden", um zu prüfen, ob es funktioniert</li>
+                        <li>Du erhältst Benachrichtigungen auch dann, wenn die App geschlossen ist</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card mt-4 bg-light">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-shield-check"></i> Datenschutz</h6>
+                    <p class="small text-muted mb-0">
+                        Push-Benachrichtigungen ermöglichen es dir, sofort Updates zu erhalten - auch wenn du die App gerade nicht nutzt.
+                        Du kannst Benachrichtigungen jederzeit deaktivieren. Dein Abonnement gilt nur für dieses Gerät.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+const VAPID_PUBLIC_KEY = '{{ my_framework_core_push_vapid_public_key() }}';
+
+const statusDiv = document.getElementById('notification-status');
+const notSupportedDiv = document.getElementById('not-supported');
+const permissionDeniedDiv = document.getElementById('permission-denied');
+const controlsDiv = document.getElementById('controls');
+const subscribeBtn = document.getElementById('subscribe-btn');
+const unsubscribeBtn = document.getElementById('unsubscribe-btn');
+const testBtn = document.getElementById('test-btn');
+
+// Utility: Convert VAPID key to Uint8Array
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+// Show status message
+function showStatus(message, type = 'info') {
+    statusDiv.textContent = message;
+    statusDiv.className = `alert alert-${type}`;
+    statusDiv.classList.remove('d-none');
+    setTimeout(() => statusDiv.classList.add('d-none'), 5000);
+}
+
+// Check if push notifications are supported
+async function checkSupport() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        notSupportedDiv.classList.remove('d-none');
+        return false;
+    }
+    return true;
+}
+
+// Get current subscription status
+async function updateUI() {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+
+    if (subscription) {
+        subscribeBtn.classList.add('d-none');
+        unsubscribeBtn.classList.remove('d-none');
+        testBtn.classList.remove('d-none');
+    } else {
+        subscribeBtn.classList.remove('d-none');
+        unsubscribeBtn.classList.add('d-none');
+        testBtn.classList.add('d-none');
+    }
+}
+
+// Subscribe to push notifications
+async function subscribe() {
+    try {
+        const registration = await navigator.serviceWorker.ready;
+
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+        });
+
+        // Send subscription to server
+        const response = await fetch('{{ path('myframework_notifications_subscribe') }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(subscription.toJSON())
+        });
+
+        if (response.ok) {
+            showStatus('✅ Benachrichtigungen erfolgreich aktiviert!', 'success');
+            await updateUI();
+        } else {
+            throw new Error('Speichern des Abonnements fehlgeschlagen');
+        }
+    } catch (error) {
+        console.error('Subscription failed:', error);
+        if (Notification.permission === 'denied') {
+            permissionDeniedDiv.classList.remove('d-none');
+        } else {
+            showStatus('❌ Aktivierung fehlgeschlagen: ' + error.message, 'danger');
+        }
+    }
+}
+
+// Unsubscribe from push notifications
+async function unsubscribe() {
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+
+        if (subscription) {
+            await subscription.unsubscribe();
+
+            // Remove from server
+            await fetch('{{ path('myframework_notifications_unsubscribe') }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ endpoint: subscription.endpoint })
+            });
+        }
+
+        showStatus('Benachrichtigungen deaktiviert', 'info');
+        await updateUI();
+    } catch (error) {
+        console.error('Unsubscribe failed:', error);
+        showStatus('❌ Deaktivierung fehlgeschlagen', 'danger');
+    }
+}
+
+// Send test notification
+async function sendTest() {
+    try {
+        testBtn.disabled = true;
+        testBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Wird gesendet...';
+
+        const response = await fetch('{{ path('myframework_notifications_test') }}', {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showStatus(`✅ Test-Benachrichtigung gesendet! (${result.sent} gesendet, ${result.failed} fehlgeschlagen)`, 'success');
+        } else {
+            showStatus('❌ Senden der Test-Benachrichtigung fehlgeschlagen', 'danger');
+        }
+    } catch (error) {
+        console.error('Test failed:', error);
+        showStatus('❌ Fehler beim Senden der Test-Benachrichtigung', 'danger');
+    } finally {
+        testBtn.disabled = false;
+        testBtn.innerHTML = '<i class="bi bi-send"></i> Test-Benachrichtigung senden';
+    }
+}
+
+// Initialize
+(async () => {
+    if (!(await checkSupport())) return;
+
+    controlsDiv.classList.remove('d-none');
+    await updateUI();
+
+    subscribeBtn.addEventListener('click', subscribe);
+    unsubscribeBtn.addEventListener('click', unsubscribe);
+    testBtn.addEventListener('click', sendTest);
+})();
+</script>
+{% endblock %}

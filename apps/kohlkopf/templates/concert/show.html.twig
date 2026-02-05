@@ -1,4 +1,4 @@
-{% extends '@MyFrameworkCore/base_home.html.twig' %}
+{% extends 'base.html.twig' %}
 
 {% block title %}{{ concert.title }}{% endblock %}
 
@@ -18,6 +18,16 @@
 
             {# Concert Details #}
             <div class="d-flex align-items-start mb-3">
+                {# Artist Image #}
+                {% if concert.artistImage %}
+                    <div class="flex-shrink-0 me-3">
+                        <img src="{{ concert.artistImage }}" 
+                             alt="{{ concert.title }}" 
+                             class="rounded shadow-sm" 
+                             style="width: 80px; height: 80px; object-fit: cover;">
+                    </div>
+                {% endif %}
+
                 <div class="flex-grow-1">
                     <h4 class="mb-1">🎸 {{ concert.title }}</h4>
                     <div class="text-muted">
@@ -46,10 +56,15 @@
 
             {# External Link #}
             {% if concert.externalLink %}
-                <a href="{{ concert.externalLink }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm w-100">
+                <a href="{{ concert.externalLink }}" target="_blank" rel="noopener" class="btn btn-outline-primary btn-sm w-100 mb-2">
                     <i class="bi bi-box-arrow-up-right me-2"></i>Tickets / Mehr Infos
                 </a>
             {% endif %}
+
+            {# Calendar Export #}
+            <a href="{{ path('concert_calendar', {id: concert.id}) }}" class="btn btn-outline-secondary btn-sm w-100">
+                <i class="bi bi-calendar-plus me-2"></i>Zum Kalender hinzufügen
+            </a>
         </div>
     </div>
 
@@ -60,17 +75,17 @@
         </div>
         <div class="card-body">
             <div class="d-flex flex-wrap gap-2" id="attendance-buttons" data-concert-id="{{ concert.id }}">
-                <button type="button" 
+                <button type="button"
                         class="btn flex-fill attendance-btn {{ userStatus.value|default('') == 'ATTENDING' ? 'btn-success' : 'btn-outline-success' }}"
                         data-status="ATTENDING">
                     <i class="bi bi-check-circle me-1"></i>Ich bin dabei!
                 </button>
-                <button type="button" 
+                <button type="button"
                         class="btn flex-fill attendance-btn {{ userStatus.value|default('') == 'INTERESTED' ? 'btn-primary' : 'btn-outline-primary' }}"
                         data-status="INTERESTED">
                     <i class="bi bi-star me-1"></i>Interessiert
                 </button>
-                <button type="button" 
+                <button type="button"
                         class="btn flex-fill attendance-btn {{ userStatus.value|default('') == 'DECLINED' ? 'btn-secondary' : 'btn-outline-secondary' }}"
                         data-status="DECLINED">
                     <i class="bi bi-x-circle me-1"></i>Absagen
@@ -117,7 +132,7 @@
 
     {# Back button #}
     <div class="d-grid">
-        <a href="{{ path('app_home') }}" class="btn btn-outline-secondary">
+        <a href="{{ path('concert_index') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left me-2"></i>Zurück zur Übersicht
         </a>
     </div>
@@ -135,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
     buttons.forEach(btn => {
         btn.addEventListener('click', async function() {
             const status = this.dataset.status;
-            
+
             try {
                 const response = await fetch(`/concert/${concertId}/attendee/status`, {
                     method: 'POST',
@@ -153,11 +168,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     buttons.forEach(b => {
                         const btnStatus = b.dataset.status;
                         const isActive = btnStatus === status;
-                        
+
                         // Reset all buttons
                         b.classList.remove('btn-success', 'btn-primary', 'btn-secondary');
                         b.classList.remove('btn-outline-success', 'btn-outline-primary', 'btn-outline-secondary');
-                        
+
                         if (isActive) {
                             // Active button gets filled style
                             if (btnStatus === 'ATTENDING') b.classList.add('btn-success');
@@ -222,7 +237,7 @@ async function markTicketPaid(concertId, ticketId, button) {
                 }
                 button.remove();
             }
-            
+
             if (typeof showToast === 'function') {
                 showToast(data.message, 'success');
             }
@@ -259,7 +274,7 @@ async function deleteTicket(concertId, ticketId, button) {
             if (ticketCard) {
                 ticketCard.remove();
             }
-            
+
             if (typeof showToast === 'function') {
                 showToast(data.message, 'success');
             }

@@ -14,12 +14,25 @@ use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\Extension\Core\Type\TimeType;
 use Symfony\Component\Form\Extension\Core\Type\UrlType;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 final class ConcertType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        // Get initial data for prefilling date/time fields
+        $concert = $options['data'] ?? null;
+        $initialDate = null;
+        $initialTime = null;
+
+        if ($concert instanceof Concert && $concert->getWhenAt() instanceof \DateTimeInterface) {
+            $whenAt = $concert->getWhenAt();
+            $initialDate = \DateTimeImmutable::createFromFormat('Y-m-d', $whenAt->format('Y-m-d')) ?: null;
+            $initialTime = \DateTimeImmutable::createFromFormat('H:i', $whenAt->format('H:i')) ?: null;
+        }
+
         $builder
             // UI: „Wer?"
             ->add('title', TextType::class, [
@@ -35,8 +48,8 @@ final class ConcertType extends AbstractType
                 'label' => 'Datum',
                 'widget' => 'single_text',
                 'html5' => true,
-                'input' => 'string',
                 'mapped' => false,
+                'data' => $initialDate,
                 'attr' => [
                     'autocomplete' => 'off',
                     'min' => (new \DateTime())->format('Y-m-d'),
@@ -46,8 +59,8 @@ final class ConcertType extends AbstractType
                 'label' => 'Uhrzeit',
                 'widget' => 'single_text',
                 'html5' => true,
-                'input' => 'string',
                 'mapped' => false,
+                'data' => $initialTime,
                 'attr' => [
                     'autocomplete' => 'off',
                     'step' => 60, // 1-Minuten-Schritte
@@ -91,6 +104,27 @@ final class ConcertType extends AbstractType
                 'expanded' => false,
                 'multiple' => false,
             ]);
+
+        // POST_SUBMIT: Merge date/time back into entity's whenAt
+        $builder->addEventListener(FormEvents::POST_SUBMIT, function (FormEvent $event): void {
+            $concert = $event->getData();
+            $form = $event->getForm();
+
+            if (!$concert instanceof Concert) {
+                return;
+            }
+
+            $date = $form->get('date')->getData();
+            $time = $form->get('time')->getData();
+
+            if ($date instanceof \DateTimeInterface && $time instanceof \DateTimeInterface) {
+                $whenAt = new \DateTime(
+                    $date->format('Y-m-d') . 'T' . $time->format('H:i'),
+                    new \DateTimeZone('Europe/Berlin')
+                );
+                $concert->setWhenAt($whenAt);
+            }
+        });
     }
 
     public function configureOptions(OptionsResolver $resolver): void

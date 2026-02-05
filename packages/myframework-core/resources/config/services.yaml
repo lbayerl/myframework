@@ -21,6 +21,7 @@ services:
       $appName: '%myframework_core.ui.app_name%'
       $primaryColor: '%myframework_core.ui.primary_color%'
       $logoPath: '%myframework_core.ui.logo_path%'
+      $homeRoute: '%myframework_core.ui.home_route%'
 
   MyFramework\Core\Security\Service\AuthMailer:
     arguments:

@@ -60,7 +60,8 @@
                     <div id="notification-status" class="alert d-none mb-3" role="alert"></div>
 
                     <div id="not-supported" class="alert alert-warning d-none">
-                        <strong><i class="bi bi-x-circle"></i> Nicht unterstützt:</strong> Dein Browser unterstützt keine Push-Benachrichtigungen.
+                        <strong><i class="bi bi-x-circle"></i> Nicht unterstützt:</strong> 
+                        <span id="not-supported-reason">Dein Browser unterstützt keine Push-Benachrichtigungen.</span>
                     </div>
 
                     <div id="permission-denied" class="alert alert-danger d-none">
@@ -149,26 +150,60 @@ function showStatus(message, type = 'info') {
 
 // Check if push notifications are supported
 async function checkSupport() {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    const notSupportedReason = document.getElementById('not-supported-reason');
+    
+    // Check HTTPS (required except localhost)
+    const isSecure = window.location.protocol === 'https:' || 
+                     window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1';
+    
+    if (!isSecure) {
+        notSupportedReason.textContent = 'Push-Benachrichtigungen benötigen eine sichere HTTPS-Verbindung.';
         notSupportedDiv.classList.remove('d-none');
         return false;
     }
+    
+    if (!('serviceWorker' in navigator)) {
+        notSupportedReason.textContent = 'Dein Browser unterstützt keine Service Worker.';
+        notSupportedDiv.classList.remove('d-none');
+        return false;
+    }
+    
+    if (!('PushManager' in window)) {
+        notSupportedReason.textContent = 'Dein Browser unterstützt keine Push-Benachrichtigungen.';
+        notSupportedDiv.classList.remove('d-none');
+        return false;
+    }
+    
     return true;
 }
 
 // Get current subscription status
 async function updateUI() {
-    const registration = await navigator.serviceWorker.ready;
-    const subscription = await registration.pushManager.getSubscription();
+    try {
+        // Wait for service worker with timeout
+        const registration = await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Service Worker timeout')), 5000))
+        ]);
+        
+        const subscription = await registration.pushManager.getSubscription();
 
-    if (subscription) {
-        subscribeBtn.classList.add('d-none');
-        unsubscribeBtn.classList.remove('d-none');
-        testBtn.classList.remove('d-none');
-    } else {
-        subscribeBtn.classList.remove('d-none');
-        unsubscribeBtn.classList.add('d-none');
-        testBtn.classList.add('d-none');
+        if (subscription) {
+            subscribeBtn.classList.add('d-none');
+            unsubscribeBtn.classList.remove('d-none');
+            testBtn.classList.remove('d-none');
+        } else {
+            subscribeBtn.classList.remove('d-none');
+            unsubscribeBtn.classList.add('d-none');
+            testBtn.classList.add('d-none');
+        }
+    } catch (error) {
+        console.error('updateUI failed:', error);
+        const notSupportedReason = document.getElementById('not-supported-reason');
+        notSupportedReason.textContent = 'Service Worker konnte nicht geladen werden. Bitte lade die Seite neu.';
+        notSupportedDiv.classList.remove('d-none');
+        controlsDiv.classList.add('d-none');
     }
 }
 
@@ -258,14 +293,28 @@ async function sendTest() {
 
 // Initialize
 (async () => {
-    if (!(await checkSupport())) return;
+    console.log('🔔 Push notification init started');
+    console.log('📱 Browser info:', {
+        userAgent: navigator.userAgent,
+        https: window.location.protocol === 'https:',
+        serviceWorker: 'serviceWorker' in navigator,
+        pushManager: 'PushManager' in window
+    });
+    
+    if (!(await checkSupport())) {
+        console.log('❌ Support check failed');
+        return;
+    }
 
+    console.log('✅ Support check passed');
     controlsDiv.classList.remove('d-none');
     await updateUI();
 
     subscribeBtn.addEventListener('click', subscribe);
     unsubscribeBtn.addEventListener('click', unsubscribe);
     testBtn.addEventListener('click', sendTest);
+    
+    console.log('🔔 Push notification init completed');
 })();
 </script>
 {% endblock %}

@@ -18,9 +18,16 @@
                 <div class="card-body">
                     <div class="text-center mb-3">
                         <div class="bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 2rem;">
-                            {{ app.user.email|first|upper }}
+                            {{ app.user.displayName|first|upper }}
                         </div>
                     </div>
+
+                    {{ form_start(profileForm) }}
+                        {{ form_row(profileForm.displayName) }}
+                        <button type="submit" class="btn btn-primary w-100 mb-3">
+                            <i class="bi bi-save"></i> Speichern
+                        </button>
+                    {{ form_end(profileForm) }}
 
                     <div class="mb-3">
                         <label class="form-label text-muted small mb-0">E-Mail-Adresse</label>
@@ -60,7 +67,7 @@
                     <div id="notification-status" class="alert d-none mb-3" role="alert"></div>
 
                     <div id="not-supported" class="alert alert-warning d-none">
-                        <strong><i class="bi bi-x-circle"></i> Nicht unterstützt:</strong> 
+                        <strong><i class="bi bi-x-circle"></i> Nicht unterstützt:</strong>
                         <span id="not-supported-reason">Dein Browser unterstützt keine Push-Benachrichtigungen.</span>
                     </div>
 
@@ -151,30 +158,30 @@ function showStatus(message, type = 'info') {
 // Check if push notifications are supported
 async function checkSupport() {
     const notSupportedReason = document.getElementById('not-supported-reason');
-    
+
     // Check HTTPS (required except localhost)
-    const isSecure = window.location.protocol === 'https:' || 
-                     window.location.hostname === 'localhost' || 
+    const isSecure = window.location.protocol === 'https:' ||
+                     window.location.hostname === 'localhost' ||
                      window.location.hostname === '127.0.0.1';
-    
+
     if (!isSecure) {
         notSupportedReason.textContent = 'Push-Benachrichtigungen benötigen eine sichere HTTPS-Verbindung.';
         notSupportedDiv.classList.remove('d-none');
         return false;
     }
-    
+
     if (!('serviceWorker' in navigator)) {
         notSupportedReason.textContent = 'Dein Browser unterstützt keine Service Worker.';
         notSupportedDiv.classList.remove('d-none');
         return false;
     }
-    
+
     if (!('PushManager' in window)) {
         notSupportedReason.textContent = 'Dein Browser unterstützt keine Push-Benachrichtigungen.';
         notSupportedDiv.classList.remove('d-none');
         return false;
     }
-    
+
     return true;
 }
 
@@ -186,7 +193,7 @@ async function updateUI() {
             navigator.serviceWorker.ready,
             new Promise((_, reject) => setTimeout(() => reject(new Error('Service Worker timeout')), 5000))
         ]);
-        
+
         const subscription = await registration.pushManager.getSubscription();
 
         if (subscription) {
@@ -300,7 +307,7 @@ async function sendTest() {
         serviceWorker: 'serviceWorker' in navigator,
         pushManager: 'PushManager' in window
     });
-    
+
     if (!(await checkSupport())) {
         console.log('❌ Support check failed');
         return;
@@ -313,7 +320,7 @@ async function sendTest() {
     subscribeBtn.addEventListener('click', subscribe);
     unsubscribeBtn.addEventListener('click', unsubscribe);
     testBtn.addEventListener('click', sendTest);
-    
+
     console.log('🔔 Push notification init completed');
 })();
 </script>

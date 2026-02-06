@@ -30,6 +30,11 @@ security:
                 password_parameter: _password
                 enable_csrf: true
 
+            remember_me:
+                secret: '%kernel.secret%'
+                lifetime: 2592000  # 30 days
+                always_remember_me: true
+
             logout:
                 path: myframework_auth_logout
                 target: myframework_auth_login

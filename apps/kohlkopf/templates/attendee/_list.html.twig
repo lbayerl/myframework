@@ -16,7 +16,7 @@
                 </div>
                 <div class="flex-grow-1">
                     <span class="{{ attendee.status.value == 'DECLINED' ? 'text-decoration-line-through' : '' }}">
-                        {{ attendee.user.displayName|default(attendee.user.email) }}
+                        {{ attendee.user.displayName }}
                     </span>
                 </div>
                 <div class="text-muted small">

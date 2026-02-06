@@ -245,7 +245,7 @@ final class TicketController extends AbstractController
         // Always add current user first
         $choices[] = [
             'id' => $currentUser->getId(),
-            'name' => $currentUser->getEmail() . ' (Ich)',
+            'name' => $currentUser->getDisplayName() . ' (Ich)',
         ];
         $addedIds[$currentUser->getId()] = true;
 
@@ -256,7 +256,7 @@ final class TicketController extends AbstractController
             if ($attendeeUser && !isset($addedIds[$attendeeUser->getId()])) {
                 $choices[] = [
                     'id' => $attendeeUser->getId(),
-                    'name' => $attendeeUser->getEmail(),
+                    'name' => $attendeeUser->getDisplayName(),
                 ];
                 $addedIds[$attendeeUser->getId()] = true;
             }

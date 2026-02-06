@@ -14,7 +14,7 @@
                             📱
                         {% endif %}
                     </div>
-                    
+
                     <div class="flex-grow-1">
                         {# Ticket Type & Price #}
                         <div class="d-flex justify-content-between align-items-start">
@@ -32,27 +32,27 @@
                                     <span class="badge bg-secondary ms-1">{{ ticket.price|number_format(2, ',', '.') }} €</span>
                                 {% endif %}
                             </div>
-                            
+
                             {# Edit & Delete buttons - everyone can edit/delete tickets #}
                             <div class="d-flex gap-1">
-                                <a href="{{ path('ticket_edit', {concertId: concert.id, ticketId: ticket.id}) }}" 
+                                <a href="{{ path('ticket_edit', {concertId: concert.id, ticketId: ticket.id}) }}"
                                    class="btn btn-sm btn-outline-primary">
                                     ✏️
                                 </a>
-                                <button type="button" 
-                                        class="btn btn-sm btn-outline-danger" 
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger"
                                         onclick="deleteTicket('{{ concert.id }}', '{{ ticket.id }}', this)">
                                     🗑️
                                 </button>
                             </div>
                         </div>
-                        
+
                         {# Owner & Purchaser #}
                         <div class="small text-muted mt-1">
                             <div>
-                                <i class="bi bi-person me-1"></i>Gehört: 
+                                <i class="bi bi-person me-1"></i>Gehört:
                                 {% if ticket.owner %}
-                                    <strong>{{ ticket.owner.email }}</strong>
+                                    <strong>{{ ticket.owner.displayName }}</strong>
                                 {% else %}
                                     <span class="text-muted fst-italic">(noch nicht zugeordnet)</span>
                                 {% endif %}
@@ -60,25 +60,25 @@
                             {% if ticket.purchaser %}
                                 {% if ticket.owner is null or ticket.purchaser.id != ticket.owner.id %}
                                     <div>
-                                        <i class="bi bi-cart me-1"></i>Gekauft von: 
-                                        <strong>{{ ticket.purchaser.email }}</strong>
+                                        <i class="bi bi-cart me-1"></i>Gekauft von:
+                                        <strong>{{ ticket.purchaser.displayName }}</strong>
                                     </div>
                                 {% endif %}
                             {% else %}
                                 <div>
-                                    <i class="bi bi-cart me-1"></i>Gekauft von: 
+                                    <i class="bi bi-cart me-1"></i>Gekauft von:
                                     <span class="text-muted fst-italic">(noch nicht zugeordnet)</span>
                                 </div>
                             {% endif %}
                         </div>
-                        
+
                         {# Seat info #}
                         {% if ticket.seat %}
                             <div class="small text-muted">
                                 <i class="bi bi-geo me-1"></i>{{ ticket.seat }}
                             </div>
                         {% endif %}
-                        
+
                         {# Payment Status #}
                         <div class="mt-2">
                             {% if ticket.isPaid %}
@@ -90,9 +90,9 @@
                                     <span class="payment-badge small text-warning">
                                         <i class="bi bi-exclamation-triangle me-1"></i>Zahlung offen
                                     </span>
-                                    
+
                                     {# Show "Mark as paid" button for everyone #}
-                                    <button type="button" 
+                                    <button type="button"
                                             class="btn btn-outline-success btn-sm ms-2"
                                             onclick="markTicketPaid('{{ concert.id }}', '{{ ticket.id }}', this)">
                                         <i class="bi bi-check me-1"></i>Als bezahlt markieren
@@ -109,7 +109,7 @@
             </div>
         {% endfor %}
     </div>
-    
+
     {# Unpaid Debts Summary #}
     {% if unpaidTickets|length > 0 %}
         <div class="card-footer bg-warning-subtle">
@@ -117,9 +117,9 @@
             <ul class="list-unstyled mb-0 small">
                 {% for ticket in unpaidTickets %}
                     <li class="mb-1">
-                        <strong>{{ ticket.owner.displayName|default(ticket.owner.email) }}</strong>
-                        schuldet 
-                        <strong>{{ ticket.purchaser.displayName|default(ticket.purchaser.email) }}</strong>
+                        <strong>{{ ticket.owner.displayName }}</strong>
+                        schuldet
+                        <strong>{{ ticket.purchaser.displayName }}</strong>
                         noch <strong>{{ ticket.price|number_format(2, ',', '.') }} €</strong>
                     </li>
                 {% endfor %}

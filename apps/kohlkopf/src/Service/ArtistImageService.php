@@ -109,7 +109,7 @@ final class ArtistImageService
             // Save file
             $targetPath = $targetDir . '/' . $filename;
             $bytesWritten = file_put_contents($targetPath, $content);
-            
+
             if ($bytesWritten === false || $bytesWritten === 0) {
                 $this->logger->error('Failed to write image file', [
                     'path' => $targetPath,

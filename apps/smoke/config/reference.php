@@ -1476,6 +1476,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         app_name?: scalar|Param|null, // Default: "%env(resolve:MYFRAMEWORK_APP_NAME)%"
  *         primary_color?: scalar|Param|null, // Default: "%env(resolve:MYFRAMEWORK_PRIMARY_COLOR)%"
  *         logo_path?: scalar|Param|null, // Default: null
+ *         home_route?: scalar|Param|null, // The route name to use for the home/brand link in navigation // Default: "app_home"
  *     },
  *     mailer?: array{
  *         from_email?: scalar|Param|null, // Default: "%env(resolve:MYFRAMEWORK_FROM_EMAIL)%"

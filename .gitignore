@@ -19,3 +19,5 @@ node_modules/
 
 # Build artifacts
 /public/assets/
+# Uploaded/cached images
+apps/*/public/images/artists/

@@ -80,6 +80,8 @@ jobs:
             
             echo "Setting permissions..."
             chmod -R 775 var/ 2>/dev/null || true
+            mkdir -p public/images/artists
+            chmod -R 775 public/images 2>/dev/null || true
             
             echo "Clearing cache..."
             rm -rf var/cache/prod

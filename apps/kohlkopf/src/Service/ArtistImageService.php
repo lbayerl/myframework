@@ -97,16 +97,31 @@ final class ArtistImageService
             // Ensure directory exists
             $targetDir = $this->publicDir . '/' . self::IMAGE_DIR;
             if (!is_dir($targetDir)) {
-                mkdir($targetDir, 0755, true);
+                if (!mkdir($targetDir, 0755, true)) {
+                    $this->logger->error('Failed to create directory', [
+                        'dir' => $targetDir,
+                        'artist' => $artistName,
+                    ]);
+                    return null;
+                }
             }
 
             // Save file
             $targetPath = $targetDir . '/' . $filename;
-            file_put_contents($targetPath, $content);
+            $bytesWritten = file_put_contents($targetPath, $content);
+            
+            if ($bytesWritten === false || $bytesWritten === 0) {
+                $this->logger->error('Failed to write image file', [
+                    'path' => $targetPath,
+                    'artist' => $artistName,
+                ]);
+                return null;
+            }
 
             $this->logger->info('Artist image saved', [
                 'artist' => $artistName,
                 'path' => $filename,
+                'bytes' => $bytesWritten,
             ]);
 
             return '/' . self::IMAGE_DIR . '/' . $filename;

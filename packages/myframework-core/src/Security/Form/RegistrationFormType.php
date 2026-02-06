@@ -9,6 +9,7 @@ use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\Extension\Core\Type\RepeatedType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -27,6 +28,14 @@ final class RegistrationFormType extends AbstractType
                     new Assert\Email(),
                     new Assert\Length(max: 180),
                 ],
+            ])
+            ->add('displayName', TextType::class, [
+                'label' => 'Anzeigename',
+                'required' => false,
+                'constraints' => [
+                    new Assert\Length(max: 100),
+                ],
+                'help' => 'Optional - wird angezeigt statt deiner E-Mail-Adresse',
             ])
             ->add('plainPassword', RepeatedType::class, [
                 'type' => PasswordType::class,

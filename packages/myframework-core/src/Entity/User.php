@@ -21,6 +21,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 180)]
     private string $email = '';
 
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $displayName = null;
+
     /**
      * @var list<string>
      */
@@ -46,6 +49,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setEmail(string $email): self
     {
         $this->email = mb_strtolower($email);
+
+        return $this;
+    }
+
+    public function getDisplayName(): string
+    {
+        return $this->displayName ?? $this->email;
+    }
+
+    public function setDisplayName(?string $displayName): self
+    {
+        $this->displayName = $displayName;
 
         return $this;
     }

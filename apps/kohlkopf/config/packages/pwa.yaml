@@ -1,6 +1,6 @@
 # Documentation available at https://pwa.spomky-labs.com/
 pwa:
-    asset_compiler: false
+    asset_compiler: true
 
     manifest:
         enabled: true
@@ -20,7 +20,7 @@ pwa:
 
     serviceworker:
         enabled: true
-        src: 'sw.js'
+        src: 'assets/sw.js'
         dest: '/sw.js'
         scope: '/'
         skip_waiting: false

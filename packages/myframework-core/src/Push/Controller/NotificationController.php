@@ -85,6 +85,7 @@ final class NotificationController extends AbstractController
             return $this->json(['success' => true]);
         } catch (\Exception $e) {
             $this->logger->error('Failed to unsubscribe from push notifications', [
+                'endpoint' => isset($data['endpoint']) ? substr($data['endpoint'], 0, 50) . '...' : 'unknown',
                 'error_class' => get_class($e),
                 'error_message' => $e->getMessage(),
             ]);

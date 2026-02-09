@@ -143,8 +143,13 @@ async function subscribe() {
         const subscriptionJson = subscription.toJSON();
         
         // Validate required fields exist
-        if (!subscriptionJson.endpoint || !subscriptionJson.keys?.auth || !subscriptionJson.keys?.p256dh) {
-            throw new Error('Invalid subscription data: missing required fields');
+        const missingFields = [];
+        if (!subscriptionJson.endpoint) missingFields.push('endpoint');
+        if (!subscriptionJson.keys?.auth) missingFields.push('keys.auth');
+        if (!subscriptionJson.keys?.p256dh) missingFields.push('keys.p256dh');
+        
+        if (missingFields.length > 0) {
+            throw new Error(`Invalid subscription data: missing ${missingFields.join(', ')}`);
         }
         
         const subscriptionData = {

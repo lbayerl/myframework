@@ -141,11 +141,17 @@ async function subscribe() {
         
         // Convert subscription to JSON format (Firefox-compatible)
         const subscriptionJson = subscription.toJSON();
+        
+        // Validate required fields exist
+        if (!subscriptionJson.endpoint || !subscriptionJson.keys?.auth || !subscriptionJson.keys?.p256dh) {
+            throw new Error('Invalid subscription data: missing required fields');
+        }
+        
         const subscriptionData = {
-            endpoint: subscriptionJson.endpoint || subscription.endpoint,
+            endpoint: subscriptionJson.endpoint,
             keys: {
-                auth: subscriptionJson.keys?.auth || subscription.keys?.auth,
-                p256dh: subscriptionJson.keys?.p256dh || subscription.keys?.p256dh
+                auth: subscriptionJson.keys.auth,
+                p256dh: subscriptionJson.keys.p256dh
             }
         };
         

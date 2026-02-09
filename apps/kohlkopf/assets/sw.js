@@ -12,12 +12,14 @@ self.addEventListener('push', (event) => {
             return event.data.json();
         } catch (error) {
             console.error('[SW] Failed to parse push data as JSON:', error);
+            // Default notification text (German: "Notification")
             return { title: 'Benachrichtigung', body: event.data.text() };
         }
     })();
 
     console.log('[SW] Push notification received:', data);
 
+    // Default notification title (German: "Notification")
     const title = data.title || 'Benachrichtigung';
     const options = {
         body: data.body || '',

@@ -2,15 +2,21 @@
 // This file handles push notifications even when the app is closed
 
 self.addEventListener('push', (event) => {
-    if (!event.data) return;
+    if (!event.data) {
+        console.warn('[SW] Push event received but no data');
+        return;
+    }
 
     const data = (() => {
         try {
             return event.data.json();
-        } catch {
+        } catch (error) {
+            console.error('[SW] Failed to parse push data as JSON:', error);
             return { title: 'Benachrichtigung', body: event.data.text() };
         }
     })();
+
+    console.log('[SW] Push notification received:', data);
 
     const title = data.title || 'Benachrichtigung';
     const options = {
@@ -20,17 +26,28 @@ self.addEventListener('push', (event) => {
         data: { url: data.url || '/' },
     };
 
-    event.waitUntil(self.registration.showNotification(title, options));
+    event.waitUntil(
+        self.registration.showNotification(title, options)
+            .then(() => console.log('[SW] Notification shown:', title))
+            .catch(error => console.error('[SW] Failed to show notification:', error))
+    );
 });
 
 self.addEventListener('notificationclick', (event) => {
+    console.log('[SW] Notification clicked:', event.notification);
     event.notification.close();
     const url = event.notification.data?.url || '/';
     event.waitUntil(
         clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
             const target = new URL(url, self.location.origin).href;
             const existing = list.find((c) => c.url === target);
-            return existing ? existing.focus() : clients.openWindow(target);
-        })
+            if (existing) {
+                console.log('[SW] Focusing existing window:', target);
+                return existing.focus();
+            } else {
+                console.log('[SW] Opening new window:', target);
+                return clients.openWindow(target);
+            }
+        }).catch(error => console.error('[SW] Failed to handle notification click:', error))
     );
 });

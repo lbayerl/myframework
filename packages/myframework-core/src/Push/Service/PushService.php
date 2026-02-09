@@ -11,12 +11,14 @@ use MyFramework\Core\Entity\PushSubscription;
 use MyFramework\Core\Push\Repository\PushSubscriptionRepository;
 use MyFramework\Core\Push\VapidConfig;
 use MyFramework\Core\Entity\User;
+use Psr\Log\LoggerInterface;
 
 final class PushService
 {
     public function __construct(
         private readonly VapidConfig $vapidConfig,
         private readonly PushSubscriptionRepository $repository,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -113,7 +115,21 @@ final class PushService
             // Bei 404/410 (Subscription expired/ungültig) automatisch löschen
             if ($report->isSubscriptionExpired()) {
                 $endpoint = $report->getEndpoint();
+                $this->logger->info('Push subscription expired, removing', [
+                    'endpoint' => $endpoint,
+                ]);
                 $this->unsubscribe($endpoint);
+            } elseif (!$report->isSuccess()) {
+                // Log failed notifications with detailed error information
+                $this->logger->error('Push notification failed', [
+                    'endpoint' => $report->getEndpoint(),
+                    'reason' => $report->getReason(),
+                    'expired' => $report->isSubscriptionExpired(),
+                ]);
+            } else {
+                $this->logger->debug('Push notification sent successfully', [
+                    'endpoint' => $report->getEndpoint(),
+                ]);
             }
         }
 

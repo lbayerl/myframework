@@ -6,6 +6,7 @@ namespace MyFramework\Core\Push\Controller;
 
 use MyFramework\Core\Push\Service\PushService;
 use MyFramework\Core\Entity\User;
+use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -19,6 +20,7 @@ final class NotificationController extends AbstractController
 {
     public function __construct(
         private readonly PushService $pushService,
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -48,10 +50,18 @@ final class NotificationController extends AbstractController
                 $data['keys']['p256dh']
             );
 
+            $this->logger->info('User subscribed to push notifications', [
+                'user_id' => $user->getId(),
+                'endpoint' => substr($data['endpoint'], 0, 50) . '...',
+            ]);
+
             return $this->json(['success' => true]);
         } catch (\Exception $e) {
-            // Log the actual error for debugging but don't expose it to users
-            // TODO: Add proper logging
+            $this->logger->error('Failed to subscribe to push notifications', [
+                'user_id' => $user->getId(),
+                'error_class' => get_class($e),
+                'error_message' => $e->getMessage(),
+            ]);
             return $this->json(['error' => 'Failed to subscribe to push notifications'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
@@ -68,10 +78,17 @@ final class NotificationController extends AbstractController
         try {
             $this->pushService->unsubscribe($data['endpoint']);
 
+            $this->logger->info('User unsubscribed from push notifications', [
+                'endpoint' => substr($data['endpoint'], 0, 50) . '...',
+            ]);
+
             return $this->json(['success' => true]);
         } catch (\Exception $e) {
-            // Log the actual error for debugging but don't expose it to users
-            // TODO: Add proper logging
+            $this->logger->error('Failed to unsubscribe from push notifications', [
+                'endpoint' => isset($data['endpoint']) ? substr($data['endpoint'], 0, 50) . '...' : 'unknown',
+                'error_class' => get_class($e),
+                'error_message' => $e->getMessage(),
+            ]);
             return $this->json(['error' => 'Failed to unsubscribe from push notifications'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
@@ -92,24 +109,41 @@ final class NotificationController extends AbstractController
 
             $successCount = 0;
             $errorCount = 0;
+            $errors = [];
 
             foreach ($reports as $report) {
                 if ($report->isSuccess()) {
                     $successCount++;
                 } else {
                     $errorCount++;
+                    $errors[] = [
+                        'endpoint' => substr($report->getEndpoint(), 0, 50) . '...',
+                        'reason' => $report->getReason(),
+                    ];
                 }
             }
+
+            $this->logger->info('Test notification sent', [
+                'user_id' => $user->getId(),
+                'success_count' => $successCount,
+                'error_count' => $errorCount,
+                'total' => count($reports),
+                'errors' => $errors,
+            ]);
 
             return $this->json([
                 'success' => true,
                 'sent' => $successCount,
                 'failed' => $errorCount,
                 'total' => count($reports),
+                'errors' => $errors,
             ]);
         } catch (\Exception $e) {
-            // Log the actual error for debugging but don't expose it to users
-            // TODO: Add proper logging
+            $this->logger->error('Failed to send test notification', [
+                'user_id' => $user->getId(),
+                'error_class' => get_class($e),
+                'error_message' => $e->getMessage(),
+            ]);
             return $this->json(['error' => 'Failed to send test notification'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }

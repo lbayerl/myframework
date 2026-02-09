@@ -139,18 +139,43 @@ async function subscribe() {
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
         
+        // Convert subscription to JSON format (Firefox-compatible)
+        const subscriptionJson = subscription.toJSON();
+        
+        // Validate required fields exist
+        const missingFields = [];
+        if (!subscriptionJson.endpoint) missingFields.push('endpoint');
+        if (!subscriptionJson.keys?.auth) missingFields.push('keys.auth');
+        if (!subscriptionJson.keys?.p256dh) missingFields.push('keys.p256dh');
+        
+        if (missingFields.length > 0) {
+            throw new Error(`Invalid subscription data: missing ${missingFields.join(', ')}`);
+        }
+        
+        const subscriptionData = {
+            endpoint: subscriptionJson.endpoint,
+            keys: {
+                auth: subscriptionJson.keys.auth,
+                p256dh: subscriptionJson.keys.p256dh
+            }
+        };
+        
+        console.log('Subscribing with data:', subscriptionData);
+        
         // Send subscription to server
         const response = await fetch('{{ path('myframework_notifications_subscribe') }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(subscription.toJSON())
+            body: JSON.stringify(subscriptionData)
         });
         
         if (response.ok) {
             showStatus('✅ Notifications enabled successfully!', 'success');
             await updateUI();
         } else {
-            throw new Error('Failed to save subscription');
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Server error:', errorData);
+            throw new Error(errorData.error || 'Failed to save subscription');
         }
     } catch (error) {
         console.error('Subscription failed:', error);
@@ -200,7 +225,18 @@ async function sendTest() {
         const result = await response.json();
         
         if (result.success) {
-            showStatus(`✅ Test notification sent! (${result.sent} sent, ${result.failed} failed)`, 'success');
+            let message = `✅ Test notification sent! (${result.sent} sent, ${result.failed} failed)`;
+            
+            // Show detailed error information if available
+            if (result.errors && result.errors.length > 0) {
+                console.error('Push notification errors:', result.errors);
+                message += '\n\nErrors (check console for details):';
+                result.errors.forEach(err => {
+                    message += `\n- ${err.reason}`;
+                });
+            }
+            
+            showStatus(message, result.failed > 0 ? 'warning' : 'success');
         } else {
             showStatus('❌ Failed to send test notification', 'danger');
         }

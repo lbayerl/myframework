@@ -21,3 +21,6 @@ node_modules/
 /public/assets/
 # Uploaded/cached images
 apps/*/public/images/artists/
+
+# Composer binary (download fresh, don't commit)
+composer.phar

@@ -76,4 +76,15 @@ final class PushSubscription
     {
         return $this->createdAt;
     }
+
+    public function updateUser(User $user): void
+    {
+        $this->user = $user;
+    }
+
+    public function updateKeys(string $authToken, string $p256dhKey): void
+    {
+        $this->authToken = $authToken;
+        $this->p256dhKey = $p256dhKey;
+    }
 }

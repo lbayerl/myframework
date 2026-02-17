@@ -194,21 +194,27 @@ async function unsubscribe() {
         const subscription = await registration.pushManager.getSubscription();
         
         if (subscription) {
-            await subscription.unsubscribe();
-            
-            // Remove from server
-            await fetch('{{ path('myframework_notifications_unsubscribe') }}', {
+            // Remove from server first, then browser
+            const response = await fetch('{{ path('myframework_notifications_unsubscribe') }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ endpoint: subscription.endpoint })
             });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('Server unsubscribe failed:', errorData);
+                throw new Error(errorData.error || 'Server failed to remove subscription');
+            }
+
+            await subscription.unsubscribe();
         }
         
         showStatus('Notifications disabled', 'info');
         await updateUI();
     } catch (error) {
         console.error('Unsubscribe failed:', error);
-        showStatus('❌ Failed to disable notifications', 'danger');
+        showStatus('❌ Failed to disable notifications: ' + error.message, 'danger');
     }
 }
 
@@ -221,7 +227,22 @@ async function sendTest() {
         const response = await fetch('{{ path('myframework_notifications_test') }}', {
             method: 'POST'
         });
-        
+        // Be defensive: the server should return JSON, but if it returns HTML
+        // (e.g. a redirect to the login page or an error page) JSON.parse will
+        // fail. Check content-type and status to provide a helpful error message.
+        const contentType = response.headers.get('content-type') || '';
+        if (!response.ok) {
+            const bodyText = await response.text().catch(() => '');
+            console.error('Server returned error for test notification', response.status, bodyText);
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        if (!contentType.includes('application/json')) {
+            const bodyText = await response.text().catch(() => '');
+            console.error('Test failed: expected JSON but got:', bodyText);
+            throw new Error('Unexpected server response (not JSON)');
+        }
+
         const result = await response.json();
         
         if (result.success) {

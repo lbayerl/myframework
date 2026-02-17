@@ -69,6 +69,9 @@ final class NotificationController extends AbstractController
     #[Route('/unsubscribe', name: 'unsubscribe', methods: ['POST'])]
     public function unsubscribe(Request $request): JsonResponse
     {
+        /** @var User $user */
+        $user = $this->getUser();
+
         $data = json_decode($request->getContent(), true);
 
         if (!isset($data['endpoint'])) {
@@ -76,16 +79,18 @@ final class NotificationController extends AbstractController
         }
 
         try {
-            $this->pushService->unsubscribe($data['endpoint']);
+            $this->pushService->unsubscribeByUser($user, $data['endpoint']);
 
             $this->logger->info('User unsubscribed from push notifications', [
+                'user_id' => $user->getId(),
                 'endpoint' => substr($data['endpoint'], 0, 50) . '...',
             ]);
 
             return $this->json(['success' => true]);
         } catch (\Exception $e) {
             $this->logger->error('Failed to unsubscribe from push notifications', [
-                'endpoint' => isset($data['endpoint']) ? substr($data['endpoint'], 0, 50) . '...' : 'unknown',
+                'user_id' => $user->getId(),
+                'endpoint' => substr($data['endpoint'], 0, 50) . '...',
                 'error_class' => get_class($e),
                 'error_message' => $e->getMessage(),
             ]);

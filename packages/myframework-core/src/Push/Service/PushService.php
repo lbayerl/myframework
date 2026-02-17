@@ -28,9 +28,23 @@ final class PushService
         string $authToken,
         string $p256dhKey,
     ): PushSubscription {
-        // Prüfen ob bereits vorhanden
         $existing = $this->repository->findByEndpoint($endpoint);
         if ($existing !== null) {
+            $hasChangedUser = $existing->getUser()->getId() !== $user->getId();
+            $hasChangedKeys = $existing->getAuthToken() !== $authToken || $existing->getP256dhKey() !== $p256dhKey;
+
+            if ($hasChangedUser || $hasChangedKeys) {
+                $existing->updateUser($user);
+                $existing->updateKeys($authToken, $p256dhKey);
+                $this->repository->save($existing);
+
+                $this->logger->info('Push subscription updated for existing endpoint', [
+                    'endpoint' => $endpoint,
+                    'user_changed' => $hasChangedUser,
+                    'keys_changed' => $hasChangedKeys,
+                ]);
+            }
+
             return $existing;
         }
 
@@ -44,6 +58,17 @@ final class PushService
     {
         $subscription = $this->repository->findByEndpoint($endpoint);
         if ($subscription !== null) {
+            $this->repository->remove($subscription);
+        }
+    }
+
+    /**
+     * Unsubscribe only if the subscription belongs to the given user.
+     */
+    public function unsubscribeByUser(User $user, string $endpoint): void
+    {
+        $subscription = $this->repository->findByEndpoint($endpoint);
+        if ($subscription !== null && $subscription->getUser()->getId() === $user->getId()) {
             $this->repository->remove($subscription);
         }
     }

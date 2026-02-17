@@ -47,21 +47,29 @@
                             </div>
                         </div>
 
-                        {# Owner & Purchaser #}
+                        {# Owner & Purchaser - supports both users and guests #}
                         <div class="small text-muted mt-1">
                             <div>
                                 <i class="bi bi-person me-1"></i>Gehört:
-                                {% if ticket.owner %}
-                                    <strong>{{ ticket.owner.displayName }}</strong>
+                                {% set ownerName = ticket.ownerDisplayName %}
+                                {% if ownerName %}
+                                    <strong>{{ ownerName }}</strong>
+                                    {% if ticket.guestOwner %}
+                                        <span class="badge bg-light text-muted border ms-1">Gast</span>
+                                    {% endif %}
                                 {% else %}
                                     <span class="text-muted fst-italic">(noch nicht zugeordnet)</span>
                                 {% endif %}
                             </div>
-                            {% if ticket.purchaser %}
-                                {% if ticket.owner is null or ticket.purchaser.id != ticket.owner.id %}
+                            {% set purchaserName = ticket.purchaserDisplayName %}
+                            {% if purchaserName %}
+                                {% if ownerName is null or purchaserName != ownerName %}
                                     <div>
                                         <i class="bi bi-cart me-1"></i>Gekauft von:
-                                        <strong>{{ ticket.purchaser.displayName }}</strong>
+                                        <strong>{{ purchaserName }}</strong>
+                                        {% if ticket.guestPurchaser %}
+                                            <span class="badge bg-light text-muted border ms-1">Gast</span>
+                                        {% endif %}
                                     </div>
                                 {% endif %}
                             {% else %}
@@ -86,7 +94,7 @@
                                     <i class="bi bi-check-circle-fill me-1"></i>Bezahlt
                                 </span>
                             {% else %}
-                                {% if ticket.owner and ticket.purchaser and ticket.owner.id != ticket.purchaser.id %}
+                                {% if ticket.hasDebt %}
                                     <span class="payment-badge small text-warning">
                                         <i class="bi bi-exclamation-triangle me-1"></i>Zahlung offen
                                     </span>
@@ -117,9 +125,9 @@
             <ul class="list-unstyled mb-0 small">
                 {% for ticket in unpaidTickets %}
                     <li class="mb-1">
-                        <strong>{{ ticket.owner.displayName }}</strong>
+                        <strong>{{ ticket.ownerDisplayName }}</strong>
                         schuldet
-                        <strong>{{ ticket.purchaser.displayName }}</strong>
+                        <strong>{{ ticket.purchaserDisplayName }}</strong>
                         noch <strong>{{ ticket.price|number_format(2, ',', '.') }} €</strong>
                     </li>
                 {% endfor %}

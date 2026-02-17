@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Concert;
+use App\Entity\Guest;
 use App\Entity\Ticket;
 use App\Enum\AttendeeStatus;
 use App\Form\TicketType;
 use App\Repository\ConcertAttendeeRepository;
+use App\Repository\GuestRepository;
 use App\Repository\TicketRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use MyFramework\Core\Entity\User;
@@ -27,6 +29,7 @@ final class TicketController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly TicketRepository $ticketRepo,
         private readonly ConcertAttendeeRepository $attendeeRepo,
+        private readonly GuestRepository $guestRepo,
     ) {
     }
 
@@ -44,38 +47,23 @@ final class TicketController extends AbstractController
         /** @var User $user */
         $user = $this->getUser();
 
-        // Build attendee choices (users who are ATTENDING or INTERESTED)
-        $attendeeChoices = $this->buildAttendeeChoices($concert, $user);
+        // Build person choices: all users + all guests (independent of attendance)
+        $personChoices = $this->buildPersonChoices($user);
 
         $ticket = new Ticket($concert, $user);
         $ticket->setCreatedBy($user);
 
         $form = $this->createForm(TicketType::class, $ticket, [
-            'attendee_choices' => $attendeeChoices,
+            'attendee_choices' => $personChoices,
         ]);
 
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Get owner and purchaser from unmapped fields
-            $ownerId = $form->get('ownerId')->getData();
-            $purchaserId = $form->get('purchaserId')->getData();
+            $this->applyPersonSelection($ticket, $form);
 
-            $userRepo = $this->em->getRepository(User::class);
-            $owner = $ownerId ? $userRepo->find($ownerId) : null;
-            $purchaser = $purchaserId ? $userRepo->find($purchaserId) : null;
-
-            // Validate that if IDs are provided, users exist
-            if (($ownerId && !$owner) || ($purchaserId && !$purchaser)) {
-                $this->addFlash('error', 'Ungültiger Benutzer ausgewählt');
-                return $this->redirectToRoute('ticket_new', ['concertId' => $concertId]);
-            }
-
-            $ticket->setOwner($owner);
-            $ticket->setPurchaser($purchaser);
-
-            // If owner == purchaser and both exist, ticket is considered paid (no debt)
-            if ($owner && $purchaser && $owner->getId() === $purchaser->getId()) {
+            // If same person owns and purchased, auto-mark as paid
+            if (!$ticket->hasDebt()) {
                 $ticket->setIsPaid(true);
             }
 
@@ -108,46 +96,27 @@ final class TicketController extends AbstractController
             throw $this->createNotFoundException('Ticket nicht gefunden');
         }
 
-        // Everyone can edit tickets
         /** @var User $user */
         $user = $this->getUser();
 
-        // Build attendee choices
-        $attendeeChoices = $this->buildAttendeeChoices($concert, $user);
+        // Build person choices: all users + all guests
+        $personChoices = $this->buildPersonChoices($user);
 
         $form = $this->createForm(TicketType::class, $ticket, [
-            'attendee_choices' => $attendeeChoices,
+            'attendee_choices' => $personChoices,
         ]);
 
-        // Pre-fill owner and purchaser IDs
-        $form->get('ownerId')->setData($ticket->getOwner()?->getId());
-        $form->get('purchaserId')->setData($ticket->getPurchaser()?->getId());
+        // Pre-fill owner and purchaser IDs (prefixed with user_ or guest_)
+        $form->get('ownerId')->setData($this->getPersonKey($ticket->getOwner(), $ticket->getGuestOwner()));
+        $form->get('purchaserId')->setData($this->getPersonKey($ticket->getPurchaser(), $ticket->getGuestPurchaser()));
 
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // Get owner and purchaser from unmapped fields
-            $ownerId = $form->get('ownerId')->getData();
-            $purchaserId = $form->get('purchaserId')->getData();
+            $this->applyPersonSelection($ticket, $form);
 
-            $userRepo = $this->em->getRepository(User::class);
-            $owner = $ownerId ? $userRepo->find($ownerId) : null;
-            $purchaser = $purchaserId ? $userRepo->find($purchaserId) : null;
-
-            // Validate that if IDs are provided, users exist
-            if (($ownerId && !$owner) || ($purchaserId && !$purchaser)) {
-                $this->addFlash('error', 'Ungültiger Benutzer ausgewählt');
-                return $this->redirectToRoute('ticket_edit', [
-                    'concertId' => $concertId,
-                    'ticketId' => $ticketId,
-                ]);
-            }
-
-            $ticket->setOwner($owner);
-            $ticket->setPurchaser($purchaser);
-
-            // If owner == purchaser and both exist, ticket is considered paid (no debt)
-            if ($owner && $purchaser && $owner->getId() === $purchaser->getId()) {
+            // If same person owns and purchased, auto-mark as paid
+            if (!$ticket->hasDebt()) {
                 $ticket->setIsPaid(true);
             }
 
@@ -175,7 +144,6 @@ final class TicketController extends AbstractController
             return $this->json(['error' => 'Ticket nicht gefunden'], Response::HTTP_NOT_FOUND);
         }
 
-        // Everyone can mark tickets as paid
         $ticket->setIsPaid(true);
         $this->em->flush();
 
@@ -196,7 +164,6 @@ final class TicketController extends AbstractController
             return $this->json(['error' => 'Ticket nicht gefunden'], Response::HTTP_NOT_FOUND);
         }
 
-        // Everyone can delete tickets
         $this->em->remove($ticket);
         $this->em->flush();
 
@@ -233,35 +200,111 @@ final class TicketController extends AbstractController
 
     /**
      * Builds the choices array for the owner/purchaser dropdowns.
-     * Includes current user + all attendees with ATTENDING or INTERESTED status.
+     * Includes current user + ALL registered users + all active guests.
+     * Ticket assignment is independent of attendance status.
      *
-     * @return array<int, array{id: int, name: string}>
+     * @return array<int, array{id: string, name: string}>
      */
-    private function buildAttendeeChoices(Concert $concert, User $currentUser): array
+    private function buildPersonChoices(User $currentUser): array
     {
         $choices = [];
-        $addedIds = [];
+        $addedKeys = [];
 
         // Always add current user first
+        $key = 'user_' . $currentUser->getId();
         $choices[] = [
-            'id' => $currentUser->getId(),
+            'id' => $key,
             'name' => $currentUser->getDisplayName() . ' (Ich)',
         ];
-        $addedIds[$currentUser->getId()] = true;
+        $addedKeys[$key] = true;
 
-        // Add all active attendees
-        $attendees = $this->attendeeRepo->findActiveAttendees($concert);
-        foreach ($attendees as $attendee) {
-            $attendeeUser = $attendee->getUser();
-            if ($attendeeUser && !isset($addedIds[$attendeeUser->getId()])) {
+        // Add ALL registered users
+        $allUsers = $this->em->getRepository(User::class)->findAll();
+        foreach ($allUsers as $user) {
+            $key = 'user_' . $user->getId();
+            if (!isset($addedKeys[$key])) {
                 $choices[] = [
-                    'id' => $attendeeUser->getId(),
-                    'name' => $attendeeUser->getDisplayName(),
+                    'id' => $key,
+                    'name' => $user->getDisplayName(),
                 ];
-                $addedIds[$attendeeUser->getId()] = true;
+                $addedKeys[$key] = true;
             }
         }
 
+        // Add all active (non-converted) guests
+        $guests = $this->guestRepo->findAllActive();
+        foreach ($guests as $guest) {
+            $key = 'guest_' . $guest->getId();
+            $choices[] = [
+                'id' => $key,
+                'name' => $guest->getName() . ' (Gast)',
+            ];
+        }
+
         return $choices;
+    }
+
+    /**
+     * Returns a prefixed key like "user_123" or "guest_45" for the person dropdowns.
+     */
+    private function getPersonKey(?User $user, ?Guest $guest): ?string
+    {
+        if ($user !== null) {
+            return 'user_' . $user->getId();
+        }
+        if ($guest !== null) {
+            return 'guest_' . $guest->getId();
+        }
+        return null;
+    }
+
+    /**
+     * Parse the selected person IDs and apply them to the ticket.
+     * IDs are prefixed: "user_123" or "guest_45".
+     */
+    private function applyPersonSelection(Ticket $ticket, \Symfony\Component\Form\FormInterface $form): void
+    {
+        $ownerId = $form->get('ownerId')->getData();
+        $purchaserId = $form->get('purchaserId')->getData();
+
+        // Reset all person fields
+        $ticket->setOwner(null);
+        $ticket->setGuestOwner(null);
+        $ticket->setPurchaser(null);
+        $ticket->setGuestPurchaser(null);
+
+        // Apply owner
+        if ($ownerId) {
+            $this->applyPersonToTicket($ticket, (string) $ownerId, 'owner');
+        }
+
+        // Apply purchaser
+        if ($purchaserId) {
+            $this->applyPersonToTicket($ticket, (string) $purchaserId, 'purchaser');
+        }
+    }
+
+    /**
+     * Sets user or guest on the ticket based on the prefixed ID.
+     */
+    private function applyPersonToTicket(Ticket $ticket, string $prefixedId, string $role): void
+    {
+        [$type, $id] = explode('_', $prefixedId, 2);
+
+        if ($type === 'user') {
+            $user = $this->em->getRepository(User::class)->find((int) $id);
+            if ($role === 'owner') {
+                $ticket->setOwner($user);
+            } else {
+                $ticket->setPurchaser($user);
+            }
+        } elseif ($type === 'guest') {
+            $guest = $this->guestRepo->find((int) $id);
+            if ($role === 'owner') {
+                $ticket->setGuestOwner($guest);
+            } else {
+                $ticket->setGuestPurchaser($guest);
+            }
+        }
     }
 }

@@ -144,13 +144,14 @@ final class ConcertRepository extends ServiceEntityRepository
     }
 
     /**
-     * Findet alle kommenden Konzerte, an denen der User teilnimmt oder interessiert ist.
+     * Findet alle kommenden Konzerte, an denen der User teilnimmt, interessiert ist, oder ein Ticket hat.
      *
-     * @return array<int, array{concert: Concert, userAttendance: string, hasTicket: bool, attendingCount: int, interestedCount: int}>
+     * @return array<int, array{concert: Concert, userAttendance: string|null, hasTicket: bool, attendingCount: int, interestedCount: int}>
      */
     public function findUpcomingForUser(int $userId, int $limit = 50): array
     {
-        $dql = "
+        // Get concerts where user is attending/interested
+        $attendeeDql = "
             SELECT c, ca.status AS userAttendance,
                 (SELECT COUNT(ca1.id) FROM App\Entity\ConcertAttendee ca1 WHERE ca1.concert = c AND ca1.status = :attending) AS attendingCount,
                 (SELECT COUNT(ca2.id) FROM App\Entity\ConcertAttendee ca2 WHERE ca2.concert = c AND ca2.status = :interested) AS interestedCount,
@@ -164,7 +165,7 @@ final class ConcertRepository extends ServiceEntityRepository
             ORDER BY c.whenAt ASC
         ";
 
-        $results = $this->getEntityManager()->createQuery($dql)
+        $attendeeResults = $this->getEntityManager()->createQuery($attendeeDql)
             ->setParameter('userId', $userId)
             ->setParameter('statuses', [AttendeeStatus::ATTENDING, AttendeeStatus::INTERESTED])
             ->setParameter('published', ConcertStatus::PUBLISHED)
@@ -174,17 +175,63 @@ final class ConcertRepository extends ServiceEntityRepository
             ->setMaxResults($limit)
             ->getResult();
 
-        return array_map(function ($row) {
+        $concertIds = [];
+        $results = [];
+
+        foreach ($attendeeResults as $row) {
+            $concert = $row[0];
+            $concertIds[$concert->getId()] = true;
             $attendance = $row['userAttendance'];
             $attendanceStr = $attendance instanceof AttendeeStatus ? $attendance->value : (string) $attendance;
-            
-            return [
-                'concert' => $row[0],
+
+            $results[] = [
+                'concert' => $concert,
                 'userAttendance' => $attendanceStr,
                 'hasTicket' => ((int) $row['ticketCount']) > 0,
                 'attendingCount' => (int) $row['attendingCount'],
                 'interestedCount' => (int) $row['interestedCount'],
             ];
-        }, $results);
+        }
+
+        // Also get concerts where user has a ticket but no attendance record
+        $ticketDql = "
+            SELECT DISTINCT c,
+                (SELECT COUNT(ca1.id) FROM App\Entity\ConcertAttendee ca1 WHERE ca1.concert = c AND ca1.status = :attending) AS attendingCount,
+                (SELECT COUNT(ca2.id) FROM App\Entity\ConcertAttendee ca2 WHERE ca2.concert = c AND ca2.status = :interested) AS interestedCount
+            FROM App\Entity\Concert c
+            JOIN App\Entity\Ticket t WITH t.concert = c
+            WHERE t.owner = :userId
+                AND c.status = :published
+                AND c.whenAt >= :now
+            ORDER BY c.whenAt ASC
+        ";
+
+        $ticketResults = $this->getEntityManager()->createQuery($ticketDql)
+            ->setParameter('userId', $userId)
+            ->setParameter('published', ConcertStatus::PUBLISHED)
+            ->setParameter('now', new \DateTime('now'))
+            ->setParameter('attending', AttendeeStatus::ATTENDING)
+            ->setParameter('interested', AttendeeStatus::INTERESTED)
+            ->setMaxResults($limit)
+            ->getResult();
+
+        foreach ($ticketResults as $row) {
+            $concert = $row[0];
+            if (!isset($concertIds[$concert->getId()])) {
+                $concertIds[$concert->getId()] = true;
+                $results[] = [
+                    'concert' => $concert,
+                    'userAttendance' => null,
+                    'hasTicket' => true,
+                    'attendingCount' => (int) $row['attendingCount'],
+                    'interestedCount' => (int) $row['interestedCount'],
+                ];
+            }
+        }
+
+        // Sort by date
+        usort($results, fn($a, $b) => $a['concert']->getWhenAt() <=> $b['concert']->getWhenAt());
+
+        return $results;
     }
 }

@@ -17,7 +17,7 @@
 
         <div class="alert alert-light border mb-3">
             <i class="bi bi-info-circle me-2"></i>
-            Konzerte, bei denen du als „Dabei" oder „Interessiert" markiert bist.
+            Konzerte, bei denen du dabei bist, interessiert bist oder ein Ticket hast.
         </div>
 
         {% if concertData is not empty %}
@@ -36,7 +36,7 @@
         {% else %}
             <div class="alert alert-info">
                 <i class="bi bi-calendar-x me-2"></i>
-                Du hast noch keine Konzerte als „Dabei" oder „Interessiert" markiert.
+                Du hast noch keine Konzerte als „Dabei" oder „Interessiert" markiert und keine Tickets.
                 <br>
                 <a href="{{ path('concert_index') }}" class="alert-link">Schau dir die kommenden Konzerte an!</a>
             </div>

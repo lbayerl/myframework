@@ -49,7 +49,7 @@ final class TicketRepository extends ServiceEntityRepository
      */
     public function findUnpaidWithDebt(Concert $concert): array
     {
-        return $this->createQueryBuilder('t')
+        $tickets = $this->createQueryBuilder('t')
             ->leftJoin('t.owner', 'o')
             ->leftJoin('t.purchaser', 'p')
             ->leftJoin('t.guestOwner', 'go')
@@ -62,6 +62,9 @@ final class TicketRepository extends ServiceEntityRepository
             ->setParameter('concert', $concert->getId(), UuidType::NAME)
             ->getQuery()
             ->getResult();
+
+        // Filter client-side: only tickets where owner and purchaser are different
+        return array_values(array_filter($tickets, fn(Ticket $t) => $t->hasDebt()));
     }
 
     /**

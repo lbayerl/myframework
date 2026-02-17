@@ -7,9 +7,7 @@ namespace App\Controller;
 use App\Entity\Concert;
 use App\Entity\Guest;
 use App\Entity\Ticket;
-use App\Enum\AttendeeStatus;
 use App\Form\TicketType;
-use App\Repository\ConcertAttendeeRepository;
 use App\Repository\GuestRepository;
 use App\Repository\TicketRepository;
 use Doctrine\ORM\EntityManagerInterface;
@@ -28,7 +26,6 @@ final class TicketController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly TicketRepository $ticketRepo,
-        private readonly ConcertAttendeeRepository $attendeeRepo,
         private readonly GuestRepository $guestRepo,
     ) {
     }
@@ -60,7 +57,10 @@ final class TicketController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->applyPersonSelection($ticket, $form);
+            if (!$this->applyPersonSelection($ticket, $form)) {
+                $this->addFlash('error', 'Ungültige Person ausgewählt');
+                return $this->redirectToRoute('ticket_new', ['concertId' => $concertId]);
+            }
 
             // If same person owns and purchased, auto-mark as paid
             if (!$ticket->hasDebt()) {
@@ -113,7 +113,13 @@ final class TicketController extends AbstractController
         $form->handleRequest($request);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->applyPersonSelection($ticket, $form);
+            if (!$this->applyPersonSelection($ticket, $form)) {
+                $this->addFlash('error', 'Ungültige Person ausgewählt');
+                return $this->redirectToRoute('ticket_edit', [
+                    'concertId' => $concertId,
+                    'ticketId' => $ticketId,
+                ]);
+            }
 
             // If same person owns and purchased, auto-mark as paid
             if (!$ticket->hasDebt()) {
@@ -261,8 +267,9 @@ final class TicketController extends AbstractController
     /**
      * Parse the selected person IDs and apply them to the ticket.
      * IDs are prefixed: "user_123" or "guest_45".
+     * Returns false if any referenced entity was not found.
      */
-    private function applyPersonSelection(Ticket $ticket, \Symfony\Component\Form\FormInterface $form): void
+    private function applyPersonSelection(Ticket $ticket, \Symfony\Component\Form\FormInterface $form): bool
     {
         $ownerId = $form->get('ownerId')->getData();
         $purchaserId = $form->get('purchaserId')->getData();
@@ -275,24 +282,38 @@ final class TicketController extends AbstractController
 
         // Apply owner
         if ($ownerId) {
-            $this->applyPersonToTicket($ticket, (string) $ownerId, 'owner');
+            if (!$this->applyPersonToTicket($ticket, (string) $ownerId, 'owner')) {
+                return false;
+            }
         }
 
         // Apply purchaser
         if ($purchaserId) {
-            $this->applyPersonToTicket($ticket, (string) $purchaserId, 'purchaser');
+            if (!$this->applyPersonToTicket($ticket, (string) $purchaserId, 'purchaser')) {
+                return false;
+            }
         }
+
+        return true;
     }
 
     /**
      * Sets user or guest on the ticket based on the prefixed ID.
+     * Returns false if the referenced entity was not found.
      */
-    private function applyPersonToTicket(Ticket $ticket, string $prefixedId, string $role): void
+    private function applyPersonToTicket(Ticket $ticket, string $prefixedId, string $role): bool
     {
+        if (!str_contains($prefixedId, '_')) {
+            return false;
+        }
+
         [$type, $id] = explode('_', $prefixedId, 2);
 
         if ($type === 'user') {
             $user = $this->em->getRepository(User::class)->find((int) $id);
+            if ($user === null) {
+                return false;
+            }
             if ($role === 'owner') {
                 $ticket->setOwner($user);
             } else {
@@ -300,11 +321,16 @@ final class TicketController extends AbstractController
             }
         } elseif ($type === 'guest') {
             $guest = $this->guestRepo->find((int) $id);
+            if ($guest === null) {
+                return false;
+            }
             if ($role === 'owner') {
                 $ticket->setGuestOwner($guest);
             } else {
                 $ticket->setGuestPurchaser($guest);
             }
         }
+
+        return true;
     }
 }

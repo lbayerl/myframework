@@ -9,10 +9,12 @@ WebPush notifications showing "2 sent, 1 wrong" in production, but working in lo
 ### 1. Added Comprehensive Logging
 
 **Files Modified:**
+
 - `packages/myframework-core/src/Push/Service/PushService.php`
 - `packages/myframework-core/src/Push/Controller/NotificationController.php`
 
 **What was added:**
+
 - Detailed error logging for failed push notifications
 - Logging of subscription/unsubscription events
 - Test notification endpoint now returns error details
@@ -21,9 +23,11 @@ WebPush notifications showing "2 sent, 1 wrong" in production, but working in lo
 ### 2. Fixed Firefox Compatibility
 
 **File Modified:**
+
 - `packages/myframework-core/resources/views/notifications/index.html.twig`
 
 **What was fixed:**
+
 - Changed from `subscription.toJSON()` to explicit JSON construction
 - Added fallback for different browser implementations
 - Added console logging for debugging
@@ -32,6 +36,7 @@ WebPush notifications showing "2 sent, 1 wrong" in production, but working in lo
 ### 3. Improved UI Error Reporting
 
 **What was improved:**
+
 - Test notification now shows detailed errors in the UI
 - Error details are logged to browser console
 - Warning status shown when some notifications fail
@@ -48,6 +53,7 @@ tail -f var/log/prod.log | grep -i "push\|notification"
 ```
 
 Look for these log entries:
+
 - `Push subscription expired, removing` - Subscription was removed (normal)
 - `Push notification failed` - Contains endpoint and reason for failure
 - `User subscribed to push notifications` - Successful subscription
@@ -59,9 +65,11 @@ Look for these log entries:
 2. Open browser DevTools (F12)
 3. Click "Enable Notifications"
 4. Check Console for:
+
    ```
    Subscribing with data: {endpoint: "...", keys: {...}}
    ```
+
 5. Click "Send Test Notification"
 6. Check Console for error details if any fail
 
@@ -97,11 +105,13 @@ If you regenerate keys, all existing subscriptions become invalid.
 Service Workers and Push Notifications REQUIRE HTTPS in production (localhost is exempt).
 
 Verify your production site:
+
 - Is served over HTTPS
 - Has a valid SSL certificate
 - Service worker is registered correctly
 
 Check in browser console:
+
 ```javascript
 navigator.serviceWorker.getRegistration().then(reg => console.log(reg));
 ```
@@ -111,12 +121,14 @@ Should show: `ServiceWorkerRegistration {scope: "https://...", ...}`
 ### Step 6: Browser-Specific Debugging
 
 **Firefox Issues:**
+
 - Firefox has stricter Push API requirements
 - Check Firefox DevTools > Application > Service Workers
 - Verify permissions are granted (not just "default")
 - Try unsubscribing and re-subscribing
 
 **Chrome Issues:**
+
 - Check chrome://serviceworker-internals/
 - Verify no errors in service worker console
 - Check Application > Manifest for valid config
@@ -137,6 +149,7 @@ ORDER BY ps.created_at DESC;
 ```
 
 Look for:
+
 - Multiple subscriptions per user (different browsers/devices - normal)
 - Very old subscriptions (might be expired)
 - Duplicate endpoints (shouldn't happen - unique constraint)
@@ -146,16 +159,19 @@ Look for:
 ### In Logs
 
 **Successful notification:**
+
 ```
 [debug] Push notification sent successfully {"endpoint":"https://..."}
 ```
 
 **Failed notification with details:**
+
 ```
 [error] Push notification failed {"endpoint":"https://...","reason":"UnauthorizedRegistration","expired":false}
 ```
 
 **Expired subscription:**
+
 ```
 [info] Push subscription expired, removing {"endpoint":"https://..."}
 ```
@@ -163,12 +179,14 @@ Look for:
 ### In Browser
 
 **Test notification success:**
+
 ```
 Status: ✅ Test notification sent! (2 sent, 0 failed)
 Console: (no errors)
 ```
 
 **Test notification partial failure:**
+
 ```
 Status: ⚠️ Test notification sent! (1 sent, 1 failed)
 
@@ -191,6 +209,7 @@ Push notification errors: [{
 **Cause:** User subscribed with different VAPID keys (e.g., staging vs production)
 
 **Solution:**
+
 1. Check logs for the failing endpoint
 2. User needs to unsubscribe and re-subscribe
 3. Or: Clear the database and have all users re-subscribe
@@ -202,6 +221,7 @@ Push notification errors: [{
 **Cause:** JSON serialization differences (fixed in this PR)
 
 **Solution:**
+
 1. Update to this PR version
 2. Have Firefox users re-subscribe
 3. Check Firefox console for errors
@@ -211,12 +231,14 @@ Push notification errors: [{
 **Symptom:** Works on localhost, not in production
 
 **Possible Causes:**
+
 1. **Not HTTPS:** Service workers require HTTPS in production
 2. **Wrong VAPID keys:** Production using different/invalid keys
 3. **Service worker not registered:** Check browser DevTools
 4. **Firewall/Proxy:** Blocking push endpoint URLs
 
 **Debugging:**
+
 ```javascript
 // In browser console on production site
 navigator.serviceWorker.getRegistration().then(reg => {

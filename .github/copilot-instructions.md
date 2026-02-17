@@ -142,7 +142,65 @@ When creating a new app based on this bundle:
 composer require myframework/core
 ```
 
-### 2. Configure PWA (Progressive Web App)
+### 2. Register Bundles
+
+In `config/bundles.php`, ensure these bundles are registered:
+```php
+<?php
+
+return [
+    // ... andere Bundles
+    Symfony\Bundle\MonologBundle\MonologBundle::class => ['all' => true],
+    SpomkyLabs\PwaBundle\SpomkyLabsPwaBundle::class => ['all' => true],
+    Minishlink\Bundle\WebPushBundle\MinishlinkWebPushBundle::class => ['all' => true],
+    MyFramework\Core\MyFrameworkCoreBundle::class => ['all' => true],
+];
+```
+
+### 3. Configure Monolog (Logging)
+
+Create `config/packages/monolog.yaml`:
+```yaml
+monolog:
+    channels:
+        - deprecation
+
+when@dev:
+    monolog:
+        handlers:
+            main:
+                type: stream
+                path: "%kernel.logs_dir%/%kernel.environment%.log"
+                level: debug
+                channels: ["!event"]
+            console:
+                type: console
+                process_psr_3_messages: false
+                channels: ["!event", "!doctrine", "!console"]
+
+when@prod:
+    monolog:
+        handlers:
+            main:
+                type: fingers_crossed
+                action_level: error
+                handler: nested
+                excluded_http_codes: [404, 405]
+                buffer_size: 50
+            nested:
+                type: stream
+                path: php://stderr
+                level: debug
+                formatter: monolog.formatter.json
+            console:
+                type: console
+                process_psr_3_messages: false
+                channels: ["!event", "!doctrine"]
+```
+
+**Note:** The bundle includes `symfony/monolog-bundle` as dependency and uses `LoggerInterface` for WebPush logging. Apps must provide the configuration.
+
+### 4. Configure PWA (Progressive Web App)
 
 Create `config/packages/pwa.yaml`:
 ```yaml
@@ -174,7 +232,7 @@ pwa:
             cache_manifest: true
 ```
 
-### 3. Provide App Icon
+### 5. Provide App Icon
 
 Create `public/icon.svg` (simple example):
 ```svg
@@ -184,7 +242,7 @@ Create `public/icon.svg` (simple example):
 </svg>
 ```
 
-### 4. Environment Variables
+### 6. Environment Variables
 
 Set in `.env.local`:
 ```env

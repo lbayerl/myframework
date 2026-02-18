@@ -44,6 +44,14 @@
                     </div>
                     <div class="d-flex gap-1">
                         {% if not guest.isConverted %}
+                            {% if is_granted('ROLE_ADMIN') %}
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-success"
+                                        title="Mit Benutzer verknüpfen"
+                                        onclick="openConvertModal({{ guest.id }}, '{{ guest.name|e('js') }}')">
+                                    <i class="bi bi-link-45deg"></i>
+                                </button>
+                            {% endif %}
                             <a href="{{ path('guest_edit', {id: guest.id}) }}"
                                class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-pencil"></i>
@@ -70,4 +78,111 @@
         </div>
     {% endif %}
 </div>
+
+{% if is_granted('ROLE_ADMIN') %}
+{# Convert Modal #}
+<div class="modal fade" id="convertModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-link-45deg me-2"></i>Gast verknüpfen</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="convertForm" method="post" action="">
+                <div class="modal-body">
+                    <p>Gast <strong id="convertGuestName"></strong> mit einem Benutzer verknüpfen:</p>
+                    <div class="mb-3">
+                        <label for="userSearchInput" class="form-label">Benutzer suchen</label>
+                        <input type="text" class="form-control" id="userSearchInput"
+                               placeholder="Name oder E-Mail…" autocomplete="off">
+                        <div id="userSearchResults" class="list-group mt-1" style="display: none;"></div>
+                    </div>
+                    <div id="selectedUserDisplay" class="alert alert-info" style="display: none;">
+                        <i class="bi bi-person-check me-2"></i>
+                        <span id="selectedUserName"></span>
+                        <input type="hidden" name="user_id" id="selectedUserId" value="">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abbrechen</button>
+                    <button type="submit" class="btn btn-success" id="convertSubmitBtn" disabled>
+                        <i class="bi bi-link-45deg me-1"></i>Verknüpfen
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let convertModal;
+let searchTimeout;
+
+document.addEventListener('DOMContentLoaded', function() {
+    convertModal = new bootstrap.Modal(document.getElementById('convertModal'));
+});
+
+function openConvertModal(guestId, guestName) {
+    document.getElementById('convertGuestName').textContent = guestName;
+    document.getElementById('convertForm').action = '/guests/' + guestId + '/convert';
+    document.getElementById('userSearchInput').value = '';
+    document.getElementById('userSearchResults').style.display = 'none';
+    document.getElementById('selectedUserDisplay').style.display = 'none';
+    document.getElementById('selectedUserId').value = '';
+    document.getElementById('convertSubmitBtn').disabled = true;
+    convertModal.show();
+
+    setTimeout(() => document.getElementById('userSearchInput').focus(), 300);
+}
+
+document.getElementById('userSearchInput').addEventListener('input', function() {
+    clearTimeout(searchTimeout);
+    const query = this.value.trim();
+
+    if (query.length < 2) {
+        document.getElementById('userSearchResults').style.display = 'none';
+        return;
+    }
+
+    searchTimeout = setTimeout(() => {
+        fetch('{{ path("guest_user_search") }}?q=' + encodeURIComponent(query))
+            .then(r => r.json())
+            .then(users => {
+                const container = document.getElementById('userSearchResults');
+                container.innerHTML = '';
+
+                if (users.length === 0) {
+                    container.innerHTML = '<div class="list-group-item text-muted">Keine Benutzer gefunden</div>';
+                } else {
+                    users.forEach(u => {
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'list-group-item list-group-item-action';
+                        item.innerHTML = '<strong>' + escapeHtml(u.displayName) + '</strong> <small class="text-muted">(' + escapeHtml(u.email) + ')</small>';
+                        item.addEventListener('click', () => selectUser(u));
+                        container.appendChild(item);
+                    });
+                }
+                container.style.display = 'block';
+            });
+    }, 300);
+});
+
+function selectUser(user) {
+    document.getElementById('selectedUserId').value = user.id;
+    document.getElementById('selectedUserName').textContent = user.displayName + ' (' + user.email + ')';
+    document.getElementById('selectedUserDisplay').style.display = 'block';
+    document.getElementById('userSearchResults').style.display = 'none';
+    document.getElementById('userSearchInput').value = '';
+    document.getElementById('convertSubmitBtn').disabled = false;
+}
+
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+</script>
+{% endif %}
+
 {% endblock %}

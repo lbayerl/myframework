@@ -7,6 +7,7 @@ namespace App\Controller;
 use App\Entity\Guest;
 use App\Form\GuestFormType;
 use App\Repository\GuestRepository;
+use App\Service\GuestConversionService;
 use Doctrine\ORM\EntityManagerInterface;
 use MyFramework\Core\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,6 +24,7 @@ final class GuestController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly GuestRepository $guestRepo,
+        private readonly GuestConversionService $conversionService,
     ) {
     }
 
@@ -124,5 +126,71 @@ final class GuestController extends AbstractController
         ], $guests);
 
         return $this->json($results);
+    }
+
+    /**
+     * Search users by name or email (AJAX endpoint for admin conversion).
+     */
+    #[Route('/user-search', name: 'guest_user_search', methods: ['GET'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function userSearch(Request $request): JsonResponse
+    {
+        $query = $request->query->getString('q', '');
+
+        if (strlen($query) < 2) {
+            return $this->json([]);
+        }
+
+        $users = $this->em->getRepository(User::class)
+            ->createQueryBuilder('u')
+            ->where('LOWER(u.email) LIKE LOWER(:q)')
+            ->orWhere('LOWER(u.displayName) LIKE LOWER(:q)')
+            ->setParameter('q', '%' . $query . '%')
+            ->setMaxResults(10)
+            ->getQuery()
+            ->getResult();
+
+        $results = array_map(fn(User $u) => [
+            'id' => $u->getId(),
+            'displayName' => $u->getDisplayName(),
+            'email' => $u->getEmail(),
+        ], $users);
+
+        return $this->json($results);
+    }
+
+    /**
+     * Manually link a guest to an existing user (Admin only).
+     */
+    #[Route('/{id}/convert', name: 'guest_convert', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function convert(Guest $guest, Request $request): Response
+    {
+        if ($guest->isConverted()) {
+            $this->addFlash('warning', 'Gast ist bereits verknüpft.');
+            return $this->redirectToRoute('guest_index');
+        }
+
+        $userId = $request->request->getInt('user_id');
+        if ($userId <= 0) {
+            $this->addFlash('error', 'Kein Benutzer ausgewählt.');
+            return $this->redirectToRoute('guest_index');
+        }
+
+        $user = $this->em->getRepository(User::class)->find($userId);
+        if ($user === null) {
+            $this->addFlash('error', 'Benutzer nicht gefunden.');
+            return $this->redirectToRoute('guest_index');
+        }
+
+        $this->conversionService->convertGuestToUser($guest, $user);
+
+        $this->addFlash('success', sprintf(
+            'Gast „%s" wurde mit %s verknüpft! ✅',
+            $guest->getName(),
+            $user->getDisplayName(),
+        ));
+
+        return $this->redirectToRoute('guest_index');
     }
 }

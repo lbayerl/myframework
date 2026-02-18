@@ -93,7 +93,7 @@ final class TicketRepository extends ServiceEntityRepository
             ->setParameter('user', $user)
             ->getQuery()
             ->getSingleScalarResult();
-        
+
         return $count > 0;
     }
 

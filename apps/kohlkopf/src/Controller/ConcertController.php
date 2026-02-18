@@ -12,6 +12,7 @@ use App\Enum\ConcertStatus;
 use App\Form\ConcertType;
 use App\Repository\ConcertAttendeeRepository;
 use App\Repository\ConcertRepository;
+use App\Repository\GuestRepository;
 use App\Repository\TicketRepository;
 use App\Service\ArtistImageService;
 use App\Service\ConcertWarningService;
@@ -136,7 +137,7 @@ final class ConcertController extends AbstractController
     }
 
     #[Route('/{id}', name: 'concert_show', methods: ['GET'], priority: -1)]
-    public function show(Concert $concert): Response
+    public function show(Concert $concert, GuestRepository $guestRepo): Response
     {
         /** @var User $user */
         $user = $this->getUser();
@@ -161,6 +162,9 @@ final class ConcertController extends AbstractController
         // Check if user can edit
         $canEdit = $concert->getCreatedBy()?->getId() === $user->getId() || $this->isGranted('ROLE_ADMIN');
 
+        // Get all active guests for the dropdown
+        $guests = $guestRepo->findAllActive();
+
         return $this->render('concert/show.html.twig', [
             'concert' => $concert,
             'userStatus' => $userStatus,
@@ -171,6 +175,7 @@ final class ConcertController extends AbstractController
             'unpaidTickets' => $unpaidTickets,
             'canEdit' => $canEdit,
             'currentUser' => $user,
+            'guests' => $guests,
         ]);
     }
 

@@ -25,7 +25,7 @@
         {% if concertData is not empty %}
             <div class="list-group">
                 {% for item in concertData %}
-                    {% include 'concert/_concert_item.html.twig' with { 
+                    {% include 'concert/_concert_item.html.twig' with {
                         concert: item.concert,
                         userAttendance: item.userAttendance,
                         hasTicket: item.hasTicket,

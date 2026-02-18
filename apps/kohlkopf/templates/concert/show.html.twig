@@ -36,14 +36,27 @@
                             <strong>{{ concert.whenAt|date('d.m.Y') }}</strong>, {{ concert.whenAt|date('H:i') }} Uhr
                         </div>
                         <div>
+                        {% if concert.whereText %}
                             <i class="bi bi-geo-alt me-2"></i>{{ concert.whereText }}
+                        {% endif %}
                         </div>
                     </div>
                 </div>
                 {% if canEdit %}
-                    <a href="{{ path('concert_edit', {id: concert.id}) }}" class="btn btn-outline-secondary btn-sm">
-                        <i class="bi bi-pencil"></i>
-                    </a>
+                    <div class="d-flex gap-1">
+                        <a href="{{ path('concert_edit', {id: concert.id}) }}" class="btn btn-outline-secondary btn-sm">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <form method="post" action="{{ path('concert_delete', {id: concert.id}) }}"
+                                  onsubmit="return confirm('Konzert und alle zugehörigen Tickets wirklich löschen?');"
+                                  style="display: inline;">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        {% endif %}
+                    </div>
                 {% endif %}
             </div>
 

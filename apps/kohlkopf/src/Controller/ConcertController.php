@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Entity\Concert;
+use App\Entity\Payment;
+use App\Entity\Ticket;
 use App\Enum\AttendeeStatus;
 use App\Enum\ConcertStatus;
 use App\Form\ConcertType;
@@ -237,7 +239,7 @@ final class ConcertController extends AbstractController
         );
 
         $summary = $escape($concert->getTitle());
-        $location = $escape($concert->getWhereText());
+        $location = $concert->getWhereText() ? $escape($concert->getWhereText()) : '';
         $description = $concert->getComment() ? $escape($concert->getComment()) : '';
         if ($concert->getExternalLink()) {
             $description .= ($description ? '\\n\\n' : '') . $escape($concert->getExternalLink());
@@ -258,8 +260,11 @@ final class ConcertController extends AbstractController
             "DTSTART:{$dtStart}",
             "DTEND:{$dtEnd}",
             "SUMMARY:{$summary}",
-            "LOCATION:{$location}",
         ];
+
+        if ($location) {
+            $ics[] = "LOCATION:{$location}";
+        }
 
         if ($description) {
             $ics[] = "DESCRIPTION:{$description}";
@@ -282,5 +287,36 @@ final class ConcertController extends AbstractController
             'Content-Type' => 'text/calendar; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
         ]);
+    }
+
+    /**
+     * Delete a concert and all related entities (Admin only).
+     */
+    #[Route('/{id}/delete', name: 'concert_delete', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function delete(Concert $concert, EntityManagerInterface $em): Response
+    {
+        $title = $concert->getTitle();
+
+        // Delete payments linked to tickets of this concert
+        $tickets = $em->getRepository(Ticket::class)->findBy(['concert' => $concert]);
+        foreach ($tickets as $ticket) {
+            $payments = $em->getRepository(Payment::class)->findBy(['ticket' => $ticket]);
+            foreach ($payments as $payment) {
+                $em->remove($payment);
+            }
+            $em->remove($ticket);
+        }
+
+        // Attendees are cascade-removed via Concert entity
+        // Delete artist image if exists
+        $this->artistImageService->deleteImage($concert->getArtistImage());
+
+        $em->remove($concert);
+        $em->flush();
+
+        $this->addFlash('success', sprintf('Konzert „%s" wurde gelöscht 🗑️', $title));
+
+        return $this->redirectToRoute('concert_index');
     }
 }

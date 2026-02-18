@@ -141,4 +141,56 @@ final class TicketRepository extends ServiceEntityRepository
             ->getQuery()
             ->getResult();
     }
+
+    /**
+     * Findet alle Tickets ohne Owner bei kommenden Konzerten in einem Zeitfenster.
+     *
+     * @return Ticket[]
+     */
+    public function findUnassignedUpcoming(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        return $this->createQueryBuilder('t')
+            ->join('t.concert', 'c')
+            ->where('t.owner IS NULL')
+            ->andWhere('t.guestOwner IS NULL')
+            ->andWhere('c.whenAt >= :from')
+            ->andWhere('c.whenAt <= :to')
+            ->andWhere('c.status = :published')
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->setParameter('published', 'PUBLISHED')
+            ->orderBy('c.whenAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * Findet alle unbezahlten Tickets mit Schulden, die einen User betreffen
+     * (als Owner oder Purchaser).
+     *
+     * @return Ticket[]
+     */
+    public function findUnpaidDebtsForUser(User $user): array
+    {
+        $tickets = $this->createQueryBuilder('t')
+            ->join('t.concert', 'c')
+            ->leftJoin('t.owner', 'o')
+            ->leftJoin('t.purchaser', 'p')
+            ->leftJoin('t.guestOwner', 'go')
+            ->leftJoin('t.guestPurchaser', 'gp')
+            ->addSelect('o', 'p', 'go', 'gp', 'c')
+            ->where('t.isPaid = false')
+            ->andWhere('t.price IS NOT NULL')
+            ->andWhere('t.price > 0')
+            ->andWhere('(t.owner IS NOT NULL OR t.guestOwner IS NOT NULL)')
+            ->andWhere('(t.purchaser IS NOT NULL OR t.guestPurchaser IS NOT NULL)')
+            ->andWhere('(t.owner = :user OR t.purchaser = :user)')
+            ->setParameter('user', $user)
+            ->orderBy('c.whenAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        // Filter: only tickets where owner and purchaser are different
+        return array_values(array_filter($tickets, fn(Ticket $t) => $t->hasDebt()));
+    }
 }

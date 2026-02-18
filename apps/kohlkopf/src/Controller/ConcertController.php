@@ -14,6 +14,7 @@ use App\Repository\ConcertAttendeeRepository;
 use App\Repository\ConcertRepository;
 use App\Repository\TicketRepository;
 use App\Service\ArtistImageService;
+use App\Service\ConcertWarningService;
 use Doctrine\ORM\EntityManagerInterface;
 use MyFramework\Core\Entity\User;
 use MyFramework\Core\Push\Service\PushService;
@@ -32,6 +33,7 @@ final class ConcertController extends AbstractController
         private readonly TicketRepository $ticketRepo,
         private readonly PushService $pushService,
         private readonly ArtistImageService $artistImageService,
+        private readonly ConcertWarningService $warningService,
     ) {
     }
 
@@ -190,10 +192,12 @@ final class ConcertController extends AbstractController
         $user = $this->getUser();
 
         $concertData = $concertRepository->findUpcomingForUser($user->getId());
+        $warnings = $this->warningService->getWarningsForUser($user);
 
         return $this->render('concert/mine.html.twig', [
             'concertData' => $concertData,
             'activeView' => 'mine',
+            'warnings' => $warnings,
         ]);
     }
 

@@ -1,0 +1,105 @@
+{#
+    Handlungsbedarf-Box für "Meine Konzerte"
+
+    Zeigt dringende Warnungen oberhalb der Konzertliste an.
+    Wird nur gerendert, wenn tatsächlich Warnungen existieren.
+
+    Variablen:
+    - warnings: array mit Keys noResponse, noTicket, unassignedTickets, unpaidDebts
+#}
+
+{% set hasWarnings = warnings.noResponse is not empty
+    or warnings.noTicket is not empty
+    or warnings.unassignedTickets is not empty
+    or warnings.unpaidDebts is not empty %}
+
+{% if hasWarnings %}
+<div class="card border-warning mb-3">
+    <div class="card-body bg-warning bg-opacity-10">
+        <h6 class="card-title mb-3">
+            <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>Handlungsbedarf
+        </h6>
+
+        {# E1/E2: Offene Zahlungen (höchste Priorität) #}
+        {% if warnings.unpaidDebts is not empty %}
+            <div class="mb-3">
+                <div class="fw-semibold text-danger small mb-1">
+                    <i class="bi bi-cash-stack me-1"></i>Offene Zahlungen
+                </div>
+                {% for debt in warnings.unpaidDebts %}
+                    <div class="ms-3 small">
+                        <a href="{{ path('concert_show', {'id': debt.concert.id}) }}" class="text-decoration-none">
+                            <span class="fw-medium">{{ debt.concert.title }}</span>
+                            <span class="text-muted">({{ debt.concert.whenAt|date('d.m.') }})</span>
+                            –
+                            {{ debt.debtor }} schuldet {{ debt.creditor }} noch {{ debt.amount|number_format(2, ',', '.') }} €
+                            {% if debt.isPast %}
+                                <span class="badge bg-danger ms-1">vergangen</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {# A1: Keine Teilnahme-Aussage #}
+        {% if warnings.noResponse is not empty %}
+            <div class="mb-3">
+                <div class="fw-semibold text-warning small mb-1">
+                    <i class="bi bi-question-circle me-1"></i>Keine Teilnahme-Aussage (< 7 Tage)
+                </div>
+                {% for item in warnings.noResponse %}
+                    <div class="ms-3 small">
+                        <a href="{{ path('concert_show', {'id': item.concert.id}) }}" class="text-decoration-none">
+                            <span class="fw-medium">{{ item.concert.title }}</span>
+                            <span class="text-muted">({{ item.concert.whenAt|date('d.m.') }})</span>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {# B1: Kein Ticket trotz Zusage #}
+        {% if warnings.noTicket is not empty %}
+            <div class="mb-3">
+                <div class="fw-semibold text-primary small mb-1">
+                    <i class="bi bi-ticket-perforated me-1"></i>Kein Ticket trotz Zusage
+                </div>
+                {% for item in warnings.noTicket %}
+                    <div class="ms-3 small">
+                        <a href="{{ path('concert_show', {'id': item.concert.id}) }}" class="text-decoration-none">
+                            <span class="fw-medium">{{ item.concert.title }}</span>
+                            <span class="text-muted">({{ item.concert.whenAt|date('d.m.') }})</span>
+                            –
+                            {% if item.status == 'ATTENDING' %}
+                                <span class="text-success">Dabei</span>
+                            {% else %}
+                                <span class="text-primary">Interessiert</span>
+                            {% endif %}
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        {# C1: Tickets ohne Zuordnung #}
+        {% if warnings.unassignedTickets is not empty %}
+            <div class="mb-3">
+                <div class="fw-semibold text-secondary small mb-1">
+                    <i class="bi bi-person-exclamation me-1"></i>Tickets ohne Zuordnung
+                </div>
+                {% for item in warnings.unassignedTickets %}
+                    <div class="ms-3 small">
+                        <a href="{{ path('concert_show', {'id': item.concert.id}) }}" class="text-decoration-none">
+                            <span class="fw-medium">{{ item.count }} {{ item.count == 1 ? 'Ticket' : 'Tickets' }}</span>
+                            bei
+                            <span class="fw-medium">{{ item.concert.title }}</span>
+                            <span class="text-muted">({{ item.concert.whenAt|date('d.m.') }})</span>
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

@@ -234,4 +234,23 @@ final class ConcertRepository extends ServiceEntityRepository
 
         return $results;
     }
+
+    /**
+     * Findet alle veröffentlichten Konzerte in einem Zeitfenster.
+     *
+     * @return Concert[]
+     */
+    public function findPublishedBetween(\DateTimeImmutable $from, \DateTimeImmutable $to): array
+    {
+        return $this->createQueryBuilder('c')
+            ->where('c.status = :status')
+            ->andWhere('c.whenAt >= :from')
+            ->andWhere('c.whenAt <= :to')
+            ->setParameter('status', ConcertStatus::PUBLISHED)
+            ->setParameter('from', $from)
+            ->setParameter('to', $to)
+            ->orderBy('c.whenAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

@@ -151,4 +151,23 @@ final class ConcertAttendeeRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+
+    /**
+     * Findet alle Attendee-Einträge eines Users mit bestimmten Status (inkl. Konzert-Join).
+     *
+     * @param AttendeeStatus[] $statuses
+     * @return ConcertAttendee[]
+     */
+    public function findUpcomingByUserWithStatuses(User $user, array $statuses): array
+    {
+        return $this->createQueryBuilder('ca')
+            ->join('ca.concert', 'c')
+            ->where('ca.user = :user')
+            ->andWhere('ca.status IN (:statuses)')
+            ->setParameter('user', $user)
+            ->setParameter('statuses', $statuses)
+            ->orderBy('c.whenAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+    }
 }

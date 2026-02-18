@@ -7,6 +7,7 @@
     - hasTicket: bool - Ob der User ein Ticket hat (optional, default: null = nicht anzeigen)
     - showStatus: bool - Ob Cancelled/Draft Badge angezeigt werden soll (optional, default: true)
     - attendingCount: int|null - Anzahl der Teilnehmer (optional)
+    - concertWarnings: list<string>|null - Warning keys für dieses Konzert (optional)
 #}
 
 {% set showStatus = showStatus ?? true %}
@@ -65,6 +66,18 @@
                     {% else %}
                         <span class="badge text-secondary border border-secondary"><i class="bi bi-ticket-perforated me-1"></i>Kein Ticket</span>
                     {% endif %}
+                {% endif %}
+
+                {# Warning Badges (from ConcertWarningService) #}
+                {% set itemWarnings = concertWarnings is defined and concertWarnings ? concertWarnings : [] %}
+                {% if 'noResponse' in itemWarnings %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-triangle me-1"></i>Zusage fehlt</span>
+                {% endif %}
+                {% if 'unassignedTicket' in itemWarnings %}
+                    <span class="badge bg-warning text-dark"><i class="bi bi-person-exclamation me-1"></i>Ticket offen</span>
+                {% endif %}
+                {% if 'unpaidDebt' in itemWarnings %}
+                    <span class="badge bg-danger"><i class="bi bi-cash-stack me-1"></i>Zahlung offen</span>
                 {% endif %}
             </div>
 

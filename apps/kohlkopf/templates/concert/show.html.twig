@@ -21,9 +21,9 @@
                 {# Artist Image #}
                 {% if concert.artistImage %}
                     <div class="flex-shrink-0 me-3">
-                        <img src="{{ concert.artistImage }}" 
-                             alt="{{ concert.title }}" 
-                             class="rounded shadow-sm" 
+                        <img src="{{ concert.artistImage }}"
+                             alt="{{ concert.title }}"
+                             class="rounded shadow-sm"
                              style="width: 80px; height: 80px; object-fit: cover;">
                     </div>
                 {% endif %}
@@ -109,6 +109,28 @@
             <turbo-frame id="attendee-list">
                 {% include 'attendee/_list.html.twig' with {attendees: attendees} %}
             </turbo-frame>
+        </div>
+        {# Add Guest Attendance #}
+        <div class="card-footer bg-white">
+            <div class="d-flex gap-2 align-items-end" id="guest-attendance-form" data-concert-id="{{ concert.id }}">
+                <div class="flex-grow-1">
+                    <label class="form-label small text-muted mb-1">Gast hinzufügen</label>
+                    <input type="text" class="form-control form-control-sm" id="guest-attendance-search"
+                           placeholder="Gastname suchen..." autocomplete="off">
+                    <div class="dropdown-menu w-100" id="guest-attendance-dropdown"></div>
+                    <input type="hidden" id="guest-attendance-id">
+                </div>
+                <div>
+                    <select class="form-select form-select-sm" id="guest-attendance-status" style="min-width: 130px;">
+                        <option value="ATTENDING">Kommt</option>
+                        <option value="INTERESTED">Interessiert</option>
+                        <option value="DECLINED">Kann nicht</option>
+                    </select>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-primary" id="guest-attendance-add" disabled>
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -290,5 +312,110 @@ async function deleteTicket(concertId, ticketId, button) {
         }
     }
 }
+
+// === Guest Attendance ===
+(function() {
+    const searchInput = document.getElementById('guest-attendance-search');
+    const dropdown = document.getElementById('guest-attendance-dropdown');
+    const hiddenId = document.getElementById('guest-attendance-id');
+    const addBtn = document.getElementById('guest-attendance-add');
+    const statusSelect = document.getElementById('guest-attendance-status');
+    const form = document.getElementById('guest-attendance-form');
+
+    if (!searchInput || !form) return;
+
+    const concertId = form.dataset.concertId;
+    let searchTimeout;
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const q = this.value.trim();
+        hiddenId.value = '';
+        addBtn.disabled = true;
+
+        if (q.length < 2) {
+            dropdown.classList.remove('show');
+            return;
+        }
+
+        searchTimeout = setTimeout(async () => {
+            try {
+                const resp = await fetch(`/guests/search?q=${encodeURIComponent(q)}`);
+                const guests = await resp.json();
+
+                dropdown.innerHTML = '';
+                if (guests.length === 0) {
+                    dropdown.innerHTML = '<span class="dropdown-item text-muted small">Kein Gast gefunden</span>';
+                } else {
+                    guests.forEach(g => {
+                        const item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'dropdown-item';
+                        item.textContent = g.name + (g.email ? ` (${g.email})` : '');
+                        item.addEventListener('click', () => {
+                            searchInput.value = g.name;
+                            hiddenId.value = g.id;
+                            addBtn.disabled = false;
+                            dropdown.classList.remove('show');
+                        });
+                        dropdown.appendChild(item);
+                    });
+                }
+                dropdown.classList.add('show');
+            } catch (e) {
+                console.error('Guest search error:', e);
+            }
+        }, 300);
+    });
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.classList.remove('show');
+        }
+    });
+
+    addBtn.addEventListener('click', async function() {
+        const guestId = hiddenId.value;
+        const status = statusSelect.value;
+
+        if (!guestId) return;
+
+        try {
+            const resp = await fetch(`/concert/${concertId}/attendee/guest-status`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ guest_id: parseInt(guestId), status: status })
+            });
+
+            const data = await resp.json();
+
+            if (data.success) {
+                // Update attendee list
+                const frame = document.getElementById('attendee-list');
+                if (frame && data.html) {
+                    frame.innerHTML = data.html;
+                }
+                // Reset form
+                searchInput.value = '';
+                hiddenId.value = '';
+                addBtn.disabled = true;
+
+                if (typeof showToast === 'function') {
+                    showToast(data.message, 'success');
+                }
+            } else {
+                if (typeof showToast === 'function') {
+                    showToast(data.error || 'Fehler', 'error');
+                }
+            }
+        } catch (e) {
+            console.error('Error:', e);
+            if (typeof showToast === 'function') {
+                showToast('Verbindungsfehler', 'error');
+            }
+        }
+    });
+})();
 </script>
 {% endblock %}

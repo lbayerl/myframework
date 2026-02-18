@@ -22,7 +22,7 @@ final class TicketRepository extends ServiceEntityRepository
     }
 
     /**
-     * Findet alle Tickets für ein bestimmtes Konzert mit User-Joins.
+     * Findet alle Tickets für ein bestimmtes Konzert mit User- und Guest-Joins.
      *
      * @return Ticket[]
      */
@@ -31,7 +31,9 @@ final class TicketRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('t')
             ->leftJoin('t.owner', 'o')
             ->leftJoin('t.purchaser', 'p')
-            ->addSelect('o', 'p')
+            ->leftJoin('t.guestOwner', 'go')
+            ->leftJoin('t.guestPurchaser', 'gp')
+            ->addSelect('o', 'p', 'go', 'gp')
             ->where('t.concert = :concert')
             ->setParameter('concert', $concert->getId(), UuidType::NAME)
             ->orderBy('t.createdAt', 'ASC')
@@ -41,23 +43,28 @@ final class TicketRepository extends ServiceEntityRepository
 
     /**
      * Findet alle unbezahlten Tickets für ein Konzert, bei denen Owner != Purchaser.
+     * Supports both user and guest owners/purchasers.
      *
      * @return Ticket[]
      */
     public function findUnpaidWithDebt(Concert $concert): array
     {
-        return $this->createQueryBuilder('t')
+        $tickets = $this->createQueryBuilder('t')
             ->leftJoin('t.owner', 'o')
             ->leftJoin('t.purchaser', 'p')
-            ->addSelect('o', 'p')
+            ->leftJoin('t.guestOwner', 'go')
+            ->leftJoin('t.guestPurchaser', 'gp')
+            ->addSelect('o', 'p', 'go', 'gp')
             ->where('t.concert = :concert')
             ->andWhere('t.isPaid = false')
-            ->andWhere('t.owner IS NOT NULL')
-            ->andWhere('t.purchaser IS NOT NULL')
-            ->andWhere('t.owner != t.purchaser')
+            ->andWhere('(t.owner IS NOT NULL OR t.guestOwner IS NOT NULL)')
+            ->andWhere('(t.purchaser IS NOT NULL OR t.guestPurchaser IS NOT NULL)')
             ->setParameter('concert', $concert->getId(), UuidType::NAME)
             ->getQuery()
             ->getResult();
+
+        // Filter client-side: only tickets where owner and purchaser are different
+        return array_values(array_filter($tickets, fn(Ticket $t) => $t->hasDebt()));
     }
 
     /**

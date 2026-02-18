@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Concert;
 use App\Entity\ConcertAttendee;
+use App\Entity\Guest;
 use App\Enum\AttendeeStatus;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -32,11 +33,11 @@ final class ConcertAttendeeRepository extends ServiceEntityRepository
         return $this->createQueryBuilder('ca')
             ->where('ca.concert = :concertId')
             ->setParameter('concertId', $concert->getId(), UuidType::NAME)
-            ->addSelect("CASE 
-                WHEN ca.status = 'ATTENDING' THEN 1 
-                WHEN ca.status = 'INTERESTED' THEN 2 
+            ->addSelect("CASE
+                WHEN ca.status = 'ATTENDING' THEN 1
+                WHEN ca.status = 'INTERESTED' THEN 2
                 WHEN ca.status = 'PARTICIPATED' THEN 3
-                ELSE 4 
+                ELSE 4
             END AS HIDDEN sortOrder")
             ->orderBy('sortOrder', 'ASC')
             ->addOrderBy('ca.createdAt', 'ASC')
@@ -135,5 +136,19 @@ final class ConcertAttendeeRepository extends ServiceEntityRepository
             ->orderBy('ca.createdAt', 'DESC')
             ->getQuery()
             ->getResult();
+    }
+
+    /**
+     * Findet den Attendee-Status eines Gasts für ein Konzert.
+     */
+    public function findOneByGuestAndConcert(Guest $guest, Concert $concert): ?ConcertAttendee
+    {
+        return $this->createQueryBuilder('ca')
+            ->where('ca.guest = :guest')
+            ->andWhere('ca.concert = :concertId')
+            ->setParameter('guest', $guest)
+            ->setParameter('concertId', $concert->getId(), UuidType::NAME)
+            ->getQuery()
+            ->getOneOrNullResult();
     }
 }

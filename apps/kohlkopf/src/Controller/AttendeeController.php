@@ -6,8 +6,10 @@ namespace App\Controller;
 
 use App\Entity\Concert;
 use App\Entity\ConcertAttendee;
+use App\Entity\Guest;
 use App\Enum\AttendeeStatus;
 use App\Repository\ConcertAttendeeRepository;
+use App\Repository\GuestRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use MyFramework\Core\Entity\User;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -24,6 +26,7 @@ final class AttendeeController extends AbstractController
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly ConcertAttendeeRepository $attendeeRepo,
+        private readonly GuestRepository $guestRepo,
     ) {
     }
 
@@ -77,7 +80,7 @@ final class AttendeeController extends AbstractController
 
         // Return updated attendee list as Turbo Stream
         $attendees = $this->attendeeRepo->findByConcertSorted($concert);
-        
+
         return $this->json([
             'success' => true,
             'status' => $status->value,
@@ -100,6 +103,98 @@ final class AttendeeController extends AbstractController
         return $this->render('attendee/_list.html.twig', [
             'concert' => $concert,
             'attendees' => $attendees,
+        ]);
+    }
+
+    /**
+     * Setzt oder ändert den Teilnahme-Status eines Gasts für ein Konzert.
+     * Erwartet JSON: {"guest_id": 123, "status": "ATTENDING"|"INTERESTED"|"DECLINED"}
+     */
+    #[Route('/guest-status', name: 'concert_attendee_guest_status', methods: ['POST'])]
+    public function updateGuestStatus(Concert $concert, Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $guestId = $data['guest_id'] ?? null;
+        $statusValue = $data['status'] ?? null;
+
+        if (!$guestId || !$statusValue) {
+            return $this->json(['error' => 'Gast-ID und Status erforderlich'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $status = AttendeeStatus::tryFrom($statusValue);
+        if (!$status) {
+            return $this->json(['error' => 'Ungültiger Status'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $guest = $this->guestRepo->find($guestId);
+        if (!$guest) {
+            return $this->json(['error' => 'Gast nicht gefunden'], Response::HTTP_NOT_FOUND);
+        }
+
+        $attendee = $this->attendeeRepo->findOneByGuestAndConcert($guest, $concert);
+
+        if ($attendee) {
+            $attendee->setStatus($status);
+        } else {
+            $attendee = new ConcertAttendee($concert, $guest, $status);
+            $this->em->persist($attendee);
+        }
+
+        $this->em->flush();
+
+        $message = match ($status) {
+            AttendeeStatus::ATTENDING => sprintf('%s ist jetzt dabei! 🎉', $guest->getDisplayName()),
+            AttendeeStatus::INTERESTED => sprintf('%s als interessiert markiert', $guest->getDisplayName()),
+            AttendeeStatus::DECLINED => sprintf('%s hat abgesagt', $guest->getDisplayName()),
+            AttendeeStatus::PARTICIPATED => sprintf('%s: Teilnahme vermerkt', $guest->getDisplayName()),
+        };
+
+        $attendees = $this->attendeeRepo->findByConcertSorted($concert);
+
+        return $this->json([
+            'success' => true,
+            'status' => $status->value,
+            'message' => $message,
+            'html' => $this->renderView('attendee/_list.html.twig', [
+                'concert' => $concert,
+                'attendees' => $attendees,
+            ]),
+        ]);
+    }
+
+    /**
+     * Entfernt einen Gast von der Teilnehmerliste.
+     */
+    #[Route('/guest-remove', name: 'concert_attendee_guest_remove', methods: ['POST'])]
+    public function removeGuest(Concert $concert, Request $request): JsonResponse
+    {
+        $data = json_decode($request->getContent(), true);
+        $guestId = $data['guest_id'] ?? null;
+
+        if (!$guestId) {
+            return $this->json(['error' => 'Gast-ID erforderlich'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $guest = $this->guestRepo->find($guestId);
+        if (!$guest) {
+            return $this->json(['error' => 'Gast nicht gefunden'], Response::HTTP_NOT_FOUND);
+        }
+
+        $attendee = $this->attendeeRepo->findOneByGuestAndConcert($guest, $concert);
+        if ($attendee) {
+            $this->em->remove($attendee);
+            $this->em->flush();
+        }
+
+        $attendees = $this->attendeeRepo->findByConcertSorted($concert);
+
+        return $this->json([
+            'success' => true,
+            'message' => sprintf('%s wurde von der Teilnehmerliste entfernt', $guest->getDisplayName()),
+            'html' => $this->renderView('attendee/_list.html.twig', [
+                'concert' => $concert,
+                'attendees' => $attendees,
+            ]),
         ]);
     }
 }

@@ -17,7 +17,7 @@ final class TicketType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
-        /** @var array<int, array{id: int, name: string}> $attendeeChoices */
+        /** @var array<int, array{id: string, name: string}> $attendeeChoices */
         $attendeeChoices = $options['attendee_choices'];
 
         // Convert to name => id format for choice field

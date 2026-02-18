@@ -10,6 +10,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 use MyFramework\Core\Entity\User;
+use App\Entity\Guest;
 
 #[ORM\Entity(repositoryClass: TicketRepository::class)]
 #[ORM\Table(name: 'ticket')]
@@ -37,6 +38,16 @@ final class Ticket
     #[ORM\ManyToOne(targetEntity: User::class)]
     #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
     private ?User $createdBy = null;
+
+    /** Guest as ticket owner (alternative to user owner) */
+    #[ORM\ManyToOne(targetEntity: Guest::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Guest $guestOwner = null;
+
+    /** Guest as ticket purchaser (alternative to user purchaser) */
+    #[ORM\ManyToOne(targetEntity: Guest::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'SET NULL')]
+    private ?Guest $guestPurchaser = null;
 
     #[ORM\Column(type: Types::DECIMAL, precision: 10, scale: 2, nullable: true)]
     private ?string $price = null; // stored as string by Doctrine for decimals
@@ -119,6 +130,93 @@ final class Ticket
     {
         $this->createdBy = $createdBy;
         return $this;
+    }
+
+    public function getGuestOwner(): ?Guest
+    {
+        return $this->guestOwner;
+    }
+
+    public function setGuestOwner(?Guest $guest): self
+    {
+        $this->guestOwner = $guest;
+        return $this;
+    }
+
+    public function getGuestPurchaser(): ?Guest
+    {
+        return $this->guestPurchaser;
+    }
+
+    public function setGuestPurchaser(?Guest $guest): self
+    {
+        $this->guestPurchaser = $guest;
+        return $this;
+    }
+
+    /**
+     * Returns the display name for the ticket owner (user or guest).
+     */
+    public function getOwnerDisplayName(): ?string
+    {
+        if ($this->owner !== null) {
+            return $this->owner->getDisplayName();
+        }
+        if ($this->guestOwner !== null) {
+            return $this->guestOwner->getDisplayName();
+        }
+        return null;
+    }
+
+    /**
+     * Returns the display name for the ticket purchaser (user or guest).
+     */
+    public function getPurchaserDisplayName(): ?string
+    {
+        if ($this->purchaser !== null) {
+            return $this->purchaser->getDisplayName();
+        }
+        if ($this->guestPurchaser !== null) {
+            return $this->guestPurchaser->getDisplayName();
+        }
+        return null;
+    }
+
+    /**
+     * Check if owner and purchaser are different entities (for debt tracking).
+     */
+    public function hasDebt(): bool
+    {
+        $ownerKey = $this->getOwnerKey();
+        $purchaserKey = $this->getPurchaserKey();
+
+        if ($ownerKey === null || $purchaserKey === null) {
+            return false;
+        }
+
+        return $ownerKey !== $purchaserKey;
+    }
+
+    private function getOwnerKey(): ?string
+    {
+        if ($this->owner !== null) {
+            return 'user_' . $this->owner->getId();
+        }
+        if ($this->guestOwner !== null) {
+            return 'guest_' . $this->guestOwner->getId();
+        }
+        return null;
+    }
+
+    private function getPurchaserKey(): ?string
+    {
+        if ($this->purchaser !== null) {
+            return 'user_' . $this->purchaser->getId();
+        }
+        if ($this->guestPurchaser !== null) {
+            return 'guest_' . $this->guestPurchaser->getId();
+        }
+        return null;
     }
 
     public function getPrice(): ?string

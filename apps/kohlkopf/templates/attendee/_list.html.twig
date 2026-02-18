@@ -16,8 +16,11 @@
                 </div>
                 <div class="flex-grow-1">
                     <span class="{{ attendee.status.value == 'DECLINED' ? 'text-decoration-line-through' : '' }}">
-                        {{ attendee.user.displayName }}
+                        {{ attendee.displayName }}
                     </span>
+                    {% if attendee.guest %}
+                        <span class="badge bg-light text-muted border ms-1" style="font-size: 0.7em;">Gast</span>
+                    {% endif %}
                 </div>
                 <div class="text-muted small">
                     {% if attendee.status.value == 'ATTENDING' %}

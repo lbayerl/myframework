@@ -14,7 +14,7 @@
                 <div>
                     <div class="fw-bold">{{ concert.title }}</div>
                     <div class="small text-muted">
-                        {{ concert.whenAt|date('d.m.Y, H:i') }} · {{ concert.whereText }}
+                        {{ concert.whenAt|date('d.m.Y, H:i') }}{% if concert.whereText %} · {{ concert.whereText }}{% endif %}
                     </div>
                 </div>
             </div>

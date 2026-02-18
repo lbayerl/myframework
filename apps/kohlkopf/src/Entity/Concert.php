@@ -37,10 +37,9 @@ final class Concert
     private \DateTime $whenAt;
 
     /** UI: „Wo?" (frei; z. B. Venue, Stadt) */
-    #[ORM\Column(type: Types::STRING, length: 200)]
-    #[Assert\NotBlank(message: 'Ort darf nicht leer sein.')]
-    #[Assert\Length(min: 2, max: 200)]
-    private string $whereText = '';
+    #[ORM\Column(type: Types::STRING, length: 200, nullable: true)]
+    #[Assert\Length(max: 200)]
+    private ?string $whereText = null;
 
     /** UI: „Kommentar" (optional) */
     #[ORM\Column(type: Types::TEXT, nullable: true)]
@@ -129,12 +128,12 @@ final class Concert
         return $this;
     }
 
-    public function getWhereText(): string
+    public function getWhereText(): ?string
     {
         return $this->whereText;
     }
 
-    public function setWhereText(string $where): self
+    public function setWhereText(?string $where): self
     {
         $this->whereText = $where;
         return $this;

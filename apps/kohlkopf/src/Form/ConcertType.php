@@ -37,6 +37,7 @@ final class ConcertType extends AbstractType
             // UI: „Wer?"
             ->add('title', TextType::class, [
                 'label' => 'Wer?',
+                'empty_data' => '',
                 'attr' => [
                     'placeholder' => 'Künstler/Band',
                     'autocomplete' => 'off',
@@ -68,7 +69,8 @@ final class ConcertType extends AbstractType
             ])
             // UI: „Wo?"
             ->add('whereText', TextType::class, [
-                'label' => 'Wo?',
+                'label' => 'Wo? (optional)',
+                'required' => false,
                 'attr' => [
                     'placeholder' => 'Venue / Stadt',
                     'autocomplete' => 'on',

@@ -13,6 +13,7 @@ use MyFramework\Core\Entity\User;
 #[ORM\Entity(repositoryClass: ConcertAttendeeRepository::class)]
 #[ORM\Table(name: 'concert_attendee')]
 #[ORM\UniqueConstraint(name: 'uniq_concert_user', columns: ['concert_id', 'user_id'])]
+#[ORM\UniqueConstraint(name: 'uniq_concert_guest', columns: ['concert_id', 'guest_id'])]
 final class ConcertAttendee
 {
     #[ORM\Id]
@@ -25,8 +26,13 @@ final class ConcertAttendee
     private ?Concert $concert = null;
 
     #[ORM\ManyToOne(targetEntity: User::class)]
-    #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
     private ?User $user = null;
+
+    /** Guest as attendee (alternative to user) */
+    #[ORM\ManyToOne(targetEntity: Guest::class)]
+    #[ORM\JoinColumn(nullable: true, onDelete: 'CASCADE')]
+    private ?Guest $guest = null;
 
     #[ORM\Column(type: Types::STRING, length: 16, enumType: AttendeeStatus::class)]
     private AttendeeStatus $status;
@@ -37,10 +43,14 @@ final class ConcertAttendee
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(Concert $concert, User $user, AttendeeStatus $status = AttendeeStatus::INTERESTED)
+    public function __construct(Concert $concert, User|Guest $participant, AttendeeStatus $status = AttendeeStatus::INTERESTED)
     {
         $this->concert = $concert;
-        $this->user = $user;
+        if ($participant instanceof User) {
+            $this->user = $participant;
+        } else {
+            $this->guest = $participant;
+        }
         $this->status = $status;
         $now = new \DateTimeImmutable();
         $this->createdAt = $now;
@@ -68,10 +78,43 @@ final class ConcertAttendee
         return $this->user;
     }
 
-    public function setUser(User $user): self
+    public function setUser(?User $user): self
     {
         $this->user = $user;
         return $this;
+    }
+
+    public function getGuest(): ?Guest
+    {
+        return $this->guest;
+    }
+
+    public function setGuest(?Guest $guest): self
+    {
+        $this->guest = $guest;
+        return $this;
+    }
+
+    /**
+     * Returns display name from user or guest.
+     */
+    public function getDisplayName(): string
+    {
+        if ($this->user !== null) {
+            return $this->user->getDisplayName() ?? $this->user->getEmail();
+        }
+        if ($this->guest !== null) {
+            return $this->guest->getDisplayName();
+        }
+        return 'Unbekannt';
+    }
+
+    /**
+     * Whether this attendee is a guest (vs. registered user).
+     */
+    public function isGuest(): bool
+    {
+        return $this->guest !== null;
     }
 
     public function getStatus(): AttendeeStatus

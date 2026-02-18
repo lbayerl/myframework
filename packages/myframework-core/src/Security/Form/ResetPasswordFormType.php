@@ -25,8 +25,8 @@ final class ResetPasswordFormType extends AbstractType
             'constraints' => [
                 new Assert\NotBlank(),
                 new Assert\Length(min: 8, max: 4096),
-                new PasswordStrength(minScore: PasswordStrength::STRENGTH_MEDIUM),
-                new NotCompromisedPassword(),
+                new PasswordStrength(minScore: PasswordStrength::STRENGTH_WEAK),
+                new NotCompromisedPassword(skipOnError: true),
             ],
         ]);
     }

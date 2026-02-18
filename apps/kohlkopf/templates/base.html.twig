@@ -1,9 +1,13 @@
-{# 
+{#
   App-spezifisches Base-Template für kohlkopf.
   Alle Seiten die das Framework-Layout nutzen, sollten von diesem Template erben.
   Definiert die app-weite Navigation mit Profil-Link.
 #}
 {% extends '@MyFrameworkCore/base_home.html.twig' %}
+
+{% block footer_links %}
+    &nbsp;·&nbsp; <a href="{{ path('app_legal_privacy') }}" class="text-muted">Datenschutz</a>
+{% endblock %}
 
 {% block navigation %}
     <li class="nav-item">

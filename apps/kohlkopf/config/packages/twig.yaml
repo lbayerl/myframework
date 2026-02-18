@@ -3,6 +3,7 @@ twig:
     date:
         timezone: 'Europe/Berlin'
     paths:
+        '%kernel.project_dir%/templates/bundles/MyFrameworkCore': MyFrameworkCore
         '%kernel.project_dir%/vendor/myframework/core/resources/views': MyFrameworkCore
 
 when@test:

@@ -9,6 +9,7 @@
 
             {{ form_start(registrationForm) }}
                 {{ form_row(registrationForm.email, {'attr': {'class': 'form-control'}}) }}
+                {{ form_row(registrationForm.displayName, {'attr': {'class': 'form-control'}}) }}
                 {{ form_row(registrationForm.plainPassword.first, {'attr': {'class': 'form-control'}}) }}
                 {{ form_row(registrationForm.plainPassword.second, {'attr': {'class': 'form-control'}}) }}
 

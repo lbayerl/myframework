@@ -23,50 +23,38 @@
                             <span class="badge bg-light text-muted border ms-1" style="font-size: 0.7em;">Gast</span>
                         {% endif %}
                     </div>
-                    <div class="text-muted small">
-                        {% if attendee.status.value == 'ATTENDING' %}
-                            <span class="text-success">Kommt</span>
-                        {% elseif attendee.status.value == 'INTERESTED' %}
-                            <span class="text-primary">Interessiert</span>
-                        {% elseif attendee.status.value == 'DECLINED' %}
-                            <span>Kann nicht</span>
-                        {% else %}
-                            <span>{{ attendee.status.value }}</span>
+                    <div class="d-flex align-items-center gap-1 ms-2">
+                        {% if attendee.guest %}
+                            {% if attendee.status.value != 'ATTENDING' %}
+                                <button type="button" class="btn btn-outline-success btn-sm py-0 px-1 guest-status-btn"
+                                        data-guest-id="{{ attendee.guest.id }}" data-status="ATTENDING"
+                                        title="Kommt">
+                                    <i class="bi bi-check-circle" style="font-size: 0.75rem;"></i>
+                                </button>
+                            {% endif %}
+                            {% if attendee.status.value != 'INTERESTED' %}
+                                <button type="button" class="btn btn-outline-primary btn-sm py-0 px-1 guest-status-btn"
+                                        data-guest-id="{{ attendee.guest.id }}" data-status="INTERESTED"
+                                        title="Interessiert">
+                                    <i class="bi bi-star" style="font-size: 0.75rem;"></i>
+                                </button>
+                            {% endif %}
+                            {% if attendee.status.value != 'DECLINED' %}
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 guest-status-btn"
+                                        data-guest-id="{{ attendee.guest.id }}" data-status="DECLINED"
+                                        title="Kann nicht">
+                                    <i class="bi bi-x-circle" style="font-size: 0.75rem;"></i>
+                                </button>
+                            {% endif %}
+                            <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1 guest-remove-btn"
+                                    data-guest-id="{{ attendee.guest.id }}"
+                                    data-guest-name="{{ attendee.displayName }}"
+                                    title="Entfernen">
+                                <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
+                            </button>
                         {% endif %}
                     </div>
                 </div>
-                {# Guest status change buttons #}
-                {% if attendee.guest %}
-                    <div class="mt-1 ms-5 d-flex gap-1">
-                        {% if attendee.status.value != 'ATTENDING' %}
-                            <button type="button" class="btn btn-outline-success btn-sm py-0 px-1 guest-status-btn"
-                                    data-guest-id="{{ attendee.guest.id }}" data-status="ATTENDING"
-                                    title="Kommt">
-                                <i class="bi bi-check-circle" style="font-size: 0.75rem;"></i>
-                            </button>
-                        {% endif %}
-                        {% if attendee.status.value != 'INTERESTED' %}
-                            <button type="button" class="btn btn-outline-primary btn-sm py-0 px-1 guest-status-btn"
-                                    data-guest-id="{{ attendee.guest.id }}" data-status="INTERESTED"
-                                    title="Interessiert">
-                                <i class="bi bi-star" style="font-size: 0.75rem;"></i>
-                            </button>
-                        {% endif %}
-                        {% if attendee.status.value != 'DECLINED' %}
-                            <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 guest-status-btn"
-                                    data-guest-id="{{ attendee.guest.id }}" data-status="DECLINED"
-                                    title="Kann nicht">
-                                <i class="bi bi-x-circle" style="font-size: 0.75rem;"></i>
-                            </button>
-                        {% endif %}
-                        <button type="button" class="btn btn-outline-danger btn-sm py-0 px-1 guest-remove-btn"
-                                data-guest-id="{{ attendee.guest.id }}"
-                                data-guest-name="{{ attendee.displayName }}"
-                                title="Entfernen">
-                            <i class="bi bi-trash" style="font-size: 0.75rem;"></i>
-                        </button>
-                    </div>
-                {% endif %}
             </li>
         {% endfor %}
     </ul>

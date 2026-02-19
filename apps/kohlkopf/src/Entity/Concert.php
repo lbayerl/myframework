@@ -74,6 +74,22 @@ final class Concert
     #[ORM\Column(type: Types::STRING, length: 255, nullable: true)]
     private ?string $artistImage = null;
 
+    /** MusicBrainz Artist ID – stabile Identifikation */
+    #[ORM\Column(type: Types::STRING, length: 36, nullable: true)]
+    private ?string $mbid = null;
+
+    /** Genre-Tags von MusicBrainz (z.B. ["punk", "rock"]) */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $genres = null;
+
+    /** Wikipedia-URL des Künstlers */
+    #[ORM\Column(type: Types::STRING, length: 512, nullable: true)]
+    private ?string $wikipediaUrl = null;
+
+    /** Kurzbeschreibung des Künstlers (aus Wikipedia-Extract) */
+    #[ORM\Column(type: Types::TEXT, nullable: true)]
+    private ?string $artistDescription = null;
+
     #[ORM\OneToMany(targetEntity: ConcertAttendee::class, mappedBy: 'concert', cascade: ['persist', 'remove'])]
     private Collection $attendees;
 
@@ -216,6 +232,56 @@ final class Concert
     public function setArtistImage(?string $path): self
     {
         $this->artistImage = $path;
+        return $this;
+    }
+
+    public function getMbid(): ?string
+    {
+        return $this->mbid;
+    }
+
+    public function setMbid(?string $mbid): self
+    {
+        $this->mbid = $mbid;
+        return $this;
+    }
+
+    /**
+     * @return string[]|null
+     */
+    public function getGenres(): ?array
+    {
+        return $this->genres;
+    }
+
+    /**
+     * @param string[]|null $genres
+     */
+    public function setGenres(?array $genres): self
+    {
+        $this->genres = $genres;
+        return $this;
+    }
+
+    public function getWikipediaUrl(): ?string
+    {
+        return $this->wikipediaUrl;
+    }
+
+    public function setWikipediaUrl(?string $url): self
+    {
+        $this->wikipediaUrl = $url;
+        return $this;
+    }
+
+    public function getArtistDescription(): ?string
+    {
+        return $this->artistDescription;
+    }
+
+    public function setArtistDescription(?string $description): self
+    {
+        $this->artistDescription = $description;
         return $this;
     }
 

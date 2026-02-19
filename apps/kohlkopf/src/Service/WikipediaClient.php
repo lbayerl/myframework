@@ -18,6 +18,10 @@ final class WikipediaClient
         private readonly string $userAgent = 'MyFriendsConcertsPWA/1.0 (contact: you@example.com)'
     ) {}
 
+    /**
+     * Enrich artist data by searching Wikipedia for the given query.
+     * This is the fallback path when MusicBrainz doesn't provide a Wikipedia URL.
+     */
     public function enrichArtist(string $query): ?array
     {
         $q = trim($query);
@@ -36,6 +40,45 @@ final class WikipediaClient
             }
 
             return $this->fetchSummary($title);
+        });
+    }
+
+    /**
+     * Fetch Wikipedia summary using an exact Wikipedia URL (from MusicBrainz).
+     * This avoids the search step entirely, so no disambiguation issues.
+     *
+     * @param string $wikipediaUrl Full Wikipedia URL, e.g. "https://de.wikipedia.org/wiki/Butterwegge_(Band)"
+     */
+    public function enrichByUrl(string $wikipediaUrl): ?array
+    {
+        $wikipediaUrl = trim($wikipediaUrl);
+        if ($wikipediaUrl === '') {
+            return null;
+        }
+
+        $cacheKey = 'wiki_url_' . sha1($wikipediaUrl);
+
+        return $this->cache->get($cacheKey, function (ItemInterface $item) use ($wikipediaUrl) {
+            $item->expiresAfter($this->cacheTtlSeconds);
+
+            // Parse the title from the Wikipedia URL
+            // e.g. "https://de.wikipedia.org/wiki/Butterwegge_(Band)" → "Butterwegge_(Band)"
+            $parsed = parse_url($wikipediaUrl);
+            $path = $parsed['path'] ?? '';
+            $host = $parsed['host'] ?? '';
+
+            // Extract title after /wiki/
+            if (preg_match('#/wiki/(.+)$#', $path, $m)) {
+                $title = rawurldecode($m[1]);
+            } else {
+                return null;
+            }
+
+            // Determine the base URL from the Wikipedia URL itself
+            $scheme = $parsed['scheme'] ?? 'https';
+            $base = $scheme . '://' . $host;
+
+            return $this->fetchSummaryFromBase($base, $title);
         });
     }
 
@@ -74,8 +117,16 @@ final class WikipediaClient
 
     private function fetchSummary(string $title): ?array
     {
+        return $this->fetchSummaryFromBase($this->base, $title);
+    }
+
+    /**
+     * Fetch page summary from any Wikipedia language edition.
+     */
+    private function fetchSummaryFromBase(string $baseUrl, string $title): ?array
+    {
         // Title muss URL-encoded sein
-        $url = $this->base . '/api/rest_v1/page/summary/' . rawurlencode($title);
+        $url = $baseUrl . '/api/rest_v1/page/summary/' . rawurlencode($title);
 
         $resp = $this->http->request('GET', $url, [
             'headers' => [

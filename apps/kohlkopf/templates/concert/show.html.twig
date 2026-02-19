@@ -30,6 +30,13 @@
 
                 <div class="flex-grow-1">
                     <h4 class="mb-1">🎸 {{ concert.title }}</h4>
+                    {% if concert.genres %}
+                        <div class="mb-1">
+                            {% for genre in concert.genres %}
+                                <span class="badge bg-secondary bg-opacity-25 text-dark me-1">{{ genre }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
                     <div class="text-muted">
                         <div class="mb-1">
                             <i class="bi bi-calendar-event me-2"></i>
@@ -64,6 +71,16 @@
             {% if concert.comment %}
                 <div class="mb-3 p-3 bg-light rounded">
                     <i class="bi bi-chat-quote me-2"></i>„{{ concert.comment }}"
+                </div>
+            {% endif %}
+
+            {# Artist Description from Wikipedia #}
+            {% if concert.artistDescription %}
+                <div class="mb-3 p-3 bg-light rounded small text-muted">
+                    <i class="bi bi-info-circle me-1"></i>{{ concert.artistDescription }}
+                    {% if concert.wikipediaUrl %}
+                        <a href="{{ concert.wikipediaUrl }}" target="_blank" rel="noopener" class="ms-1">Wikipedia <i class="bi bi-box-arrow-up-right"></i></a>
+                    {% endif %}
                 </div>
             {% endif %}
 

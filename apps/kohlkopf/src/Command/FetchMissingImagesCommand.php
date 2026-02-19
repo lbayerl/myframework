@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Command;
 
 use App\Repository\ConcertRepository;
-use App\Service\ArtistImageService;
+use App\Service\ArtistEnrichmentService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -15,14 +15,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
-    name: 'app:fetch-missing-images',
-    description: 'Fetch Wikipedia images for concerts that don\'t have one yet',
+    name: 'app:enrich-concerts',
+    description: 'Enrich concerts with artist data from MusicBrainz + Wikipedia (image, genres, description)',
 )]
 final class FetchMissingImagesCommand extends Command
 {
     public function __construct(
         private readonly ConcertRepository $concertRepository,
-        private readonly ArtistImageService $artistImageService,
+        private readonly ArtistEnrichmentService $enrichmentService,
         private readonly EntityManagerInterface $em,
     ) {
         parent::__construct();
@@ -30,7 +30,7 @@ final class FetchMissingImagesCommand extends Command
 
     protected function configure(): void
     {
-        $this->addOption('force', 'f', InputOption::VALUE_NONE, 'Refetch images even if already set');
+        $this->addOption('force', 'f', InputOption::VALUE_NONE, 'Re-enrich all concerts, even those already enriched');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -49,28 +49,36 @@ final class FetchMissingImagesCommand extends Command
             $concert = $item['concert'];
             $title = $concert->getTitle();
 
-            if (!$force && $concert->getArtistImage() !== null) {
-                $io->text(sprintf('⏭ Skipping "%s" (already has image)', $title));
+            // Skip if already enriched (has MBID or description) unless --force
+            if (!$force && ($concert->getMbid() !== null || $concert->getArtistDescription() !== null)) {
+                $io->text(sprintf('⏭ Skipping "%s" (already enriched)', $title));
                 $skipped++;
                 continue;
             }
 
-            $io->text(sprintf('🔍 Fetching image for "%s"...', $title));
+            $io->text(sprintf('🔍 Enriching "%s"...', $title));
 
-            // Delete old image if force-refetching
-            if ($force && $concert->getArtistImage() !== null) {
-                $this->artistImageService->deleteImage($concert->getArtistImage());
+            if ($force) {
+                $this->enrichmentService->reEnrich($concert);
+            } else {
+                $this->enrichmentService->enrich($concert);
             }
 
-            $imagePath = $this->artistImageService->fetchAndStoreImage($title, $concert->getId());
-
-            if ($imagePath !== null) {
-                $concert->setArtistImage($imagePath);
-                $io->text(sprintf('  ✅ Saved: %s', $imagePath));
+            if ($concert->getMbid() !== null || $concert->getArtistImage() !== null) {
+                $parts = [];
+                if ($concert->getMbid() !== null) {
+                    $parts[] = 'MBID';
+                }
+                if ($concert->getGenres() !== null) {
+                    $parts[] = implode(', ', $concert->getGenres());
+                }
+                if ($concert->getArtistImage() !== null) {
+                    $parts[] = 'image';
+                }
+                $io->text(sprintf('  ✅ %s', implode(' | ', $parts)));
                 $updated++;
             } else {
-                $io->text('  ❌ No image found');
-                $concert->setArtistImage(null);
+                $io->text('  ❌ No data found');
                 $failed++;
             }
         }
@@ -79,7 +87,7 @@ final class FetchMissingImagesCommand extends Command
 
         $io->newLine();
         $io->success(sprintf(
-            'Done! Updated: %d, Skipped: %d, No image found: %d',
+            'Done! Enriched: %d, Skipped: %d, No data: %d',
             $updated,
             $skipped,
             $failed

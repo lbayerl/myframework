@@ -14,7 +14,7 @@ use App\Repository\ConcertAttendeeRepository;
 use App\Repository\ConcertRepository;
 use App\Repository\GuestRepository;
 use App\Repository\TicketRepository;
-use App\Service\ArtistImageService;
+use App\Service\ArtistEnrichmentService;
 use App\Service\ConcertWarningService;
 use Doctrine\ORM\EntityManagerInterface;
 use MyFramework\Core\Entity\User;
@@ -33,7 +33,7 @@ final class ConcertController extends AbstractController
         private readonly ConcertAttendeeRepository $attendeeRepo,
         private readonly TicketRepository $ticketRepo,
         private readonly PushService $pushService,
-        private readonly ArtistImageService $artistImageService,
+        private readonly ArtistEnrichmentService $artistEnrichmentService,
         private readonly ConcertWarningService $warningService,
     ) {
     }
@@ -56,15 +56,9 @@ final class ConcertController extends AbstractController
             $em->persist($concert);
             $em->flush();
 
-            // Fetch artist image from Wikipedia (async-safe: runs after persist so we have ID)
-            $imagePath = $this->artistImageService->fetchAndStoreImage(
-                $concert->getTitle(),
-                $concert->getId()
-            );
-            if ($imagePath !== null) {
-                $concert->setArtistImage($imagePath);
-                $em->flush();
-            }
+            // Enrich concert with artist data from MusicBrainz + Wikipedia
+            $this->artistEnrichmentService->enrich($concert);
+            $em->flush();
 
             $this->pushService->sendToAll(
                 'Neues Konzert',
@@ -106,17 +100,9 @@ final class ConcertController extends AbstractController
                 $concert->setCancelledAt(null);
             }
 
-            // If title changed, fetch new artist image
+            // If title changed, re-enrich artist data
             if ($concert->getTitle() !== $originalTitle) {
-                // Delete old image if exists
-                $this->artistImageService->deleteImage($concert->getArtistImage());
-
-                // Fetch new image
-                $imagePath = $this->artistImageService->fetchAndStoreImage(
-                    $concert->getTitle(),
-                    $concert->getId()
-                );
-                $concert->setArtistImage($imagePath);
+                $this->artistEnrichmentService->reEnrich($concert);
             }
 
             $concert->touch();
@@ -319,7 +305,7 @@ final class ConcertController extends AbstractController
 
         // Attendees are cascade-removed via Concert entity
         // Delete artist image if exists
-        $this->artistImageService->deleteImage($concert->getArtistImage());
+        $this->artistEnrichmentService->deleteImage($concert->getArtistImage());
 
         $em->remove($concert);
         $em->flush();

@@ -85,10 +85,6 @@
                                 <i class="bi bi-bell"></i> Benachrichtigungen für dieses Gerät aktivieren
                             </button>
 
-                            <button id="unsubscribe-btn" class="btn btn-outline-secondary btn-lg d-none">
-                                <i class="bi bi-bell-slash"></i> Benachrichtigungen für dieses Gerät deaktivieren
-                            </button>
-
                             <button id="test-btn" class="btn btn-success d-none">
                                 <i class="bi bi-send"></i> Test-Benachrichtigung senden
                             </button>
@@ -140,7 +136,6 @@ const notSupportedDiv = document.getElementById('not-supported');
 const permissionDeniedDiv = document.getElementById('permission-denied');
 const controlsDiv = document.getElementById('controls');
 const subscribeBtn = document.getElementById('subscribe-btn');
-const unsubscribeBtn = document.getElementById('unsubscribe-btn');
 const testBtn = document.getElementById('test-btn');
 const subscriptionsList = document.getElementById('subscriptions-list');
 const subscriptionsEmpty = document.getElementById('subscriptions-empty');
@@ -221,16 +216,16 @@ function renderSubscriptions(subscriptions, currentEndpoint = null) {
     for (const item of subscriptions) {
         const isCurrentDevice = currentEndpoint !== null && item.endpoint === currentEndpoint;
         const row = document.createElement('div');
-        row.className = 'list-group-item d-flex justify-content-between align-items-start gap-3';
+        row.className = 'list-group-item d-flex justify-content-between align-items-center gap-2';
         row.innerHTML = `
-            <div class="flex-grow-1">
+            <div style="min-width:0" class="flex-grow-1">
                 <div class="fw-semibold">${escapeHtml(item.deviceLabel || 'Unbekanntes Gerät')}</div>
-                <div class="fw-semibold small mb-1">${escapeHtml(item.endpointPreview)}</div>
+                <div class="text-muted small text-truncate">${escapeHtml(item.endpointPreview)}</div>
                 <div class="text-muted small">Registriert: ${escapeHtml(formatDate(item.createdAt))}</div>
-                ${isCurrentDevice ? '<span class="badge bg-success mt-2">Dieses Gerät</span>' : ''}
+                ${isCurrentDevice ? '<span class="badge bg-success mt-1">Dieses Gerät</span>' : ''}
             </div>
-            <button class="btn btn-sm btn-outline-danger" data-subscription-id="${item.id}" type="button">
-                <i class="bi bi-trash"></i> Entfernen
+            <button class="btn btn-sm btn-outline-danger flex-shrink-0" data-subscription-id="${item.id}" data-endpoint="${escapeHtml(item.endpoint)}" type="button" title="Entfernen">
+                <i class="bi bi-trash"></i><span class="d-none d-sm-inline"> Entfernen</span>
             </button>
         `;
 
@@ -323,11 +318,9 @@ async function updateUI() {
 
         if (subscription) {
             subscribeBtn.classList.add('d-none');
-            unsubscribeBtn.classList.remove('d-none');
             testBtn.classList.remove('d-none');
         } else {
             subscribeBtn.classList.remove('d-none');
-            unsubscribeBtn.classList.add('d-none');
             testBtn.classList.add('d-none');
         }
     } catch (error) {
@@ -391,37 +384,6 @@ async function subscribe() {
         } else {
             showStatus('❌ Aktivierung fehlgeschlagen: ' + error.message, 'danger');
         }
-    }
-}
-
-// Unsubscribe from push notifications
-async function unsubscribe() {
-    try {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-
-        if (subscription) {
-            // Remove from server
-            const response = await fetch('{{ path('myframework_notifications_unsubscribe') }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ endpoint: subscription.endpoint })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.error || 'Server konnte Subscription nicht entfernen');
-            }
-
-            await subscription.unsubscribe();
-        }
-
-        showStatus('Benachrichtigungen für dieses Gerät deaktiviert', 'info');
-        await updateUI();
-        await loadSubscriptions();
-    } catch (error) {
-        console.error('Unsubscribe failed:', error);
-        showStatus('❌ Deaktivierung fehlgeschlagen', 'danger');
     }
 }
 
@@ -510,12 +472,27 @@ async function sendTest() {
             return;
         }
 
+        const removedEndpoint = button.dataset.endpoint || null;
         const originalHtml = button.innerHTML;
         button.disabled = true;
         button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
 
         try {
             await removeSubscription(subscriptionId);
+
+            // If this was the current device, also unsubscribe the browser
+            if (removedEndpoint) {
+                try {
+                    const reg = await navigator.serviceWorker.ready;
+                    const sub = await reg.pushManager.getSubscription();
+                    if (sub && sub.endpoint === removedEndpoint) {
+                        await sub.unsubscribe();
+                    }
+                } catch (e) {
+                    console.warn('Browser unsubscribe skipped:', e);
+                }
+            }
+
             showStatus('Subscription entfernt.', 'info');
             await updateUI();
             await loadSubscriptions();
@@ -529,7 +506,6 @@ async function sendTest() {
     });
 
     subscribeBtn.addEventListener('click', subscribe);
-    unsubscribeBtn.addEventListener('click', unsubscribe);
     testBtn.addEventListener('click', sendTest);
 
     console.log('🔔 Push notification init completed');

@@ -97,6 +97,11 @@ jobs:
               systemctl reload php8.4-fpm 2>/dev/null || true
             fi
             
+            # Setup daily concert reminder cron (9:00 AM server time)
+            CRON_CMD="0 9 * * * cd $DEPLOY_PATH && APP_ENV=prod php bin/console app:send-concert-reminders >> var/log/cron.log 2>&1"
+            (crontab -l 2>/dev/null | grep -v 'app:send-concert-reminders' ; echo "$CRON_CMD") | crontab -
+            echo "✅ Cron job installed: daily concert reminders at 09:00"
+            
             echo "✅ Deployment successful!"
             echo "Backup: $BACKUP_PATH"
           ENDSSH

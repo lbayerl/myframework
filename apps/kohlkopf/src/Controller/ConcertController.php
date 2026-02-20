@@ -88,8 +88,11 @@ final class ConcertController extends AbstractController
             throw $this->createAccessDeniedException();
         }
 
-        // Remember original title to detect changes
+        // Remember original values to detect changes
         $originalTitle = $concert->getTitle();
+        $originalStatus = $concert->getStatus();
+        $originalWhenAt = clone $concert->getWhenAt();
+        $originalWhereText = $concert->getWhereText();
 
         $form = $this->createForm(ConcertType::class, $concert);
         $form->handleRequest($request);
@@ -107,6 +110,33 @@ final class ConcertController extends AbstractController
 
             $concert->touch();
             $em->flush();
+
+            // Notify attendees about cancellation
+            if ($concert->getStatus() === ConcertStatus::CANCELLED && $originalStatus !== ConcertStatus::CANCELLED) {
+                $this->notifyAttendees(
+                    $concert,
+                    'Konzert abgesagt',
+                    sprintf('%s wurde leider abgesagt.', $concert->getTitle()),
+                );
+            }
+
+            // Notify attendees about date/venue changes (only if not cancelled)
+            if ($concert->getStatus() !== ConcertStatus::CANCELLED) {
+                $changes = [];
+                if ($concert->getWhenAt()->format('Y-m-d H:i') !== $originalWhenAt->format('Y-m-d H:i')) {
+                    $changes[] = sprintf('Neuer Termin: %s um %s', $concert->getWhenAt()->format('d.m.Y'), $concert->getWhenAt()->format('H:i'));
+                }
+                if ($concert->getWhereText() !== $originalWhereText) {
+                    $changes[] = sprintf('Neuer Ort: %s', $concert->getWhereText() ?: '(entfernt)');
+                }
+                if (count($changes) > 0) {
+                    $this->notifyAttendees(
+                        $concert,
+                        sprintf('Konzert geändert: %s', $concert->getTitle()),
+                        implode(' | ', $changes),
+                    );
+                }
+            }
 
             $this->addFlash('success', 'Änderungen gespeichert.');
             return $this->redirectToRoute('concert_show', ['id' => $concert->getId()]);
@@ -313,5 +343,21 @@ final class ConcertController extends AbstractController
         $this->addFlash('success', sprintf('Konzert „%s" wurde gelöscht 🗑️', $title));
 
         return $this->redirectToRoute('concert_index');
+    }
+
+    /**
+     * Notify all ATTENDING + INTERESTED users about a concert change.
+     */
+    private function notifyAttendees(Concert $concert, string $title, string $body): void
+    {
+        $attendees = $this->attendeeRepo->findActiveAttendees($concert);
+        $url = $this->generateUrl('concert_show', ['id' => $concert->getId()]);
+
+        foreach ($attendees as $attendee) {
+            $user = $attendee->getUser();
+            if ($user !== null) {
+                $this->pushService->sendToUser($user, $title, $body, $url);
+            }
+        }
     }
 }

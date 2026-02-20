@@ -12,6 +12,7 @@ use App\Repository\GuestRepository;
 use App\Repository\TicketRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use MyFramework\Core\Entity\User;
+use MyFramework\Core\Push\Service\PushService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,6 +28,7 @@ final class TicketController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly TicketRepository $ticketRepo,
         private readonly GuestRepository $guestRepo,
+        private readonly PushService $pushService,
     ) {
     }
 
@@ -69,7 +71,7 @@ final class TicketController extends AbstractController
 
             $this->em->persist($ticket);
             $this->em->flush();
-
+            $this->notifyTicketOwner($ticket, $user);
             $this->addFlash('success', 'Ticket wurde hinzugefügt! 🎟️');
             return $this->redirectToRoute('concert_show', ['id' => $concertId]);
         }
@@ -127,7 +129,7 @@ final class TicketController extends AbstractController
             }
 
             $this->em->flush();
-
+            $this->notifyTicketOwner($ticket, $user);
             $this->addFlash('success', 'Ticket wurde aktualisiert! 🎟️');
             return $this->redirectToRoute('concert_show', ['id' => $concertId]);
         }
@@ -332,5 +334,26 @@ final class TicketController extends AbstractController
         }
 
         return true;
+    }
+
+    /**
+     * Notify the ticket owner (if it's a registered user different from the current user).
+     */
+    private function notifyTicketOwner(Ticket $ticket, User $currentUser): void
+    {
+        $owner = $ticket->getOwner();
+        if ($owner === null || $owner->getId() === $currentUser->getId()) {
+            return;
+        }
+
+        $concert = $ticket->getConcert();
+        $url = $this->generateUrl('concert_show', ['id' => $concert->getId()]);
+
+        $this->pushService->sendToUser(
+            $owner,
+            sprintf('Ticket: %s', $concert->getTitle()),
+            sprintf('Dir wurde ein Ticket für %s zugewiesen.', $concert->getTitle()),
+            $url,
+        );
     }
 }

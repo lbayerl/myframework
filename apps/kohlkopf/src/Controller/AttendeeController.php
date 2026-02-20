@@ -12,6 +12,7 @@ use App\Repository\ConcertAttendeeRepository;
 use App\Repository\GuestRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use MyFramework\Core\Entity\User;
+use MyFramework\Core\Push\Service\PushService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -27,6 +28,7 @@ final class AttendeeController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly ConcertAttendeeRepository $attendeeRepo,
         private readonly GuestRepository $guestRepo,
+        private readonly PushService $pushService,
     ) {
     }
 
@@ -69,6 +71,11 @@ final class AttendeeController extends AbstractController
         }
 
         $this->em->flush();
+
+        // Notify other ATTENDING users when someone new joins
+        if ($status === AttendeeStatus::ATTENDING) {
+            $this->notifyAttendingUsers($concert, $user);
+        }
 
         // Generate message for toast
         $message = match ($status) {
@@ -196,5 +203,26 @@ final class AttendeeController extends AbstractController
                 'attendees' => $attendees,
             ]),
         ]);
+    }
+
+    /**
+     * Notify all ATTENDING users (except the one who just joined) that someone new is coming.
+     */
+    private function notifyAttendingUsers(Concert $concert, User $newAttendee): void
+    {
+        $attendees = $this->attendeeRepo->findByConcertAndStatus($concert, AttendeeStatus::ATTENDING);
+        $url = $this->generateUrl('concert_show', ['id' => $concert->getId()]);
+
+        foreach ($attendees as $attendee) {
+            $user = $attendee->getUser();
+            if ($user !== null && $user->getId() !== $newAttendee->getId()) {
+                $this->pushService->sendToUser(
+                    $user,
+                    sprintf('%s: Neue Zusage', $concert->getTitle()),
+                    sprintf('%s ist jetzt auch dabei!', $newAttendee->getDisplayName()),
+                    $url,
+                );
+            }
+        }
     }
 }

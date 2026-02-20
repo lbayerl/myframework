@@ -38,8 +38,8 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'Benachrichtigung';
     const options = {
         body: data.body || '',
-        icon: data.icon || '/images/icon.svg',
-        badge: data.badge || '/images/icon.svg',
+        icon: data.icon || '/images/notification-icon.png',
+        badge: data.badge || '/images/notification-badge.png',
         data: { url: data.url || '/' },
     };
 
@@ -48,6 +48,16 @@ self.addEventListener('push', (event) => {
             .then(() => console.log('[SW] Notification shown:', title))
             .catch(error => {
                 console.error('[SW] Failed to show notification:', error);
+                const fallbackOptions = {
+                    body: data.body || '',
+                    data: { url: data.url || '/' },
+                };
+
+                return self.registration.showNotification(title, fallbackOptions)
+                    .then(() => console.log('[SW] Notification shown with fallback options:', title))
+                    .catch(fallbackError => {
+                        console.error('[SW] Fallback notification also failed:', fallbackError);
+                    });
             })
     );
 });

@@ -19,5 +19,13 @@ services:
     App\:
         resource: '../src/'
 
+    MyFramework\Core\Push\Service\PushService:
+        arguments:
+            $logger: '@monolog.logger.push'
+
+    MyFramework\Core\Push\Controller\NotificationController:
+        arguments:
+            $logger: '@monolog.logger.push'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

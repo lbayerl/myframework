@@ -139,6 +139,11 @@ final class PushService
             ],
         ]);
 
+        $webPush->setDefaultOptions([
+            'TTL' => 86400,
+            'urgency' => 'high',
+        ]);
+
         $payload = json_encode([
             'title' => $title,
             'body' => $body,

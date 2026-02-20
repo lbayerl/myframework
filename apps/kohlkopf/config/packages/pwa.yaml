@@ -18,11 +18,8 @@ pwa:
             - src: 'images/icon.svg'
               sizes: 0
 
+    # Service Worker is managed manually (public/sw.js served as static file)
+    # The asset_compiler overwrites SW content, stripping push notification handlers.
+    # Instead we register our own SW directly in the base template.
     serviceworker:
-        enabled: true
-        src: 'public/sw.js'
-        dest: '/sw.js'
-        scope: '/'
-        skip_waiting: false
-        workbox:
-            enabled: false
+        enabled: false

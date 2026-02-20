@@ -82,17 +82,25 @@
 
                         <div class="d-grid gap-2">
                             <button id="subscribe-btn" class="btn btn-primary btn-lg d-none">
-                                <i class="bi bi-bell"></i> Benachrichtigungen aktivieren
+                                <i class="bi bi-bell"></i> Benachrichtigungen für dieses Gerät aktivieren
                             </button>
 
                             <button id="unsubscribe-btn" class="btn btn-outline-secondary btn-lg d-none">
-                                <i class="bi bi-bell-slash"></i> Benachrichtigungen deaktivieren
+                                <i class="bi bi-bell-slash"></i> Benachrichtigungen für dieses Gerät deaktivieren
                             </button>
 
                             <button id="test-btn" class="btn btn-success d-none">
                                 <i class="bi bi-send"></i> Test-Benachrichtigung senden
                             </button>
                         </div>
+
+                        <hr class="my-4">
+
+                        <h6 class="mb-3"><i class="bi bi-phone"></i> Registrierte Geräte</h6>
+                        <div id="subscriptions-empty" class="text-muted small d-none">
+                            Keine gespeicherten Push-Subscriptions gefunden.
+                        </div>
+                        <div id="subscriptions-list" class="list-group"></div>
                     </div>
                 </div>
             </div>
@@ -103,7 +111,7 @@
                 </div>
                 <div class="card-body">
                     <ol class="mb-0">
-                        <li class="mb-2">Klicke auf "Benachrichtigungen aktivieren"</li>
+                        <li class="mb-2">Klicke auf "Benachrichtigungen für dieses Gerät aktivieren"</li>
                         <li class="mb-2">Erlaube Benachrichtigungen, wenn dein Browser fragt</li>
                         <li class="mb-2">Nutze "Test-Benachrichtigung senden", um zu prüfen, ob es funktioniert</li>
                         <li>Du erhältst Benachrichtigungen auch dann, wenn die App geschlossen ist</li>
@@ -116,7 +124,7 @@
                     <h6 class="card-title"><i class="bi bi-shield-check"></i> Datenschutz</h6>
                     <p class="small text-muted mb-0">
                         Push-Benachrichtigungen ermöglichen es dir, sofort Updates zu erhalten - auch wenn du die App gerade nicht nutzt.
-                        Du kannst Benachrichtigungen jederzeit deaktivieren. Dein Abonnement gilt nur für dieses Gerät.
+                        Du kannst Benachrichtigungen pro Gerät jederzeit deaktivieren. Das Abonnement gilt immer nur für dieses Gerät.
                     </p>
                 </div>
             </div>
@@ -134,6 +142,8 @@ const controlsDiv = document.getElementById('controls');
 const subscribeBtn = document.getElementById('subscribe-btn');
 const unsubscribeBtn = document.getElementById('unsubscribe-btn');
 const testBtn = document.getElementById('test-btn');
+const subscriptionsList = document.getElementById('subscriptions-list');
+const subscriptionsEmpty = document.getElementById('subscriptions-empty');
 
 // Utility: Convert VAPID key to Uint8Array
 function urlBase64ToUint8Array(base64String) {
@@ -153,6 +163,121 @@ function showStatus(message, type = 'info') {
     statusDiv.className = `alert alert-${type}`;
     statusDiv.classList.remove('d-none');
     setTimeout(() => statusDiv.classList.add('d-none'), 5000);
+}
+
+function escapeHtml(value) {
+    return value
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+function formatDate(isoString) {
+    try {
+        return new Date(isoString).toLocaleString('de-DE');
+    } catch {
+        return isoString;
+    }
+}
+
+function detectDeviceLabel() {
+    const ua = navigator.userAgent;
+
+    let browser = 'Browser';
+    if (ua.includes('Firefox')) {
+        browser = 'Firefox';
+    } else if (ua.includes('Edg/')) {
+        browser = 'Edge';
+    } else if (ua.includes('OPR/') || ua.includes('Opera')) {
+        browser = 'Opera';
+    } else if (ua.includes('Chrome')) {
+        browser = 'Chrome';
+    } else if (ua.includes('Safari')) {
+        browser = 'Safari';
+    }
+
+    let platform = 'Desktop';
+    if (/Android/i.test(ua)) {
+        platform = 'Android';
+    } else if (/iPhone|iPad|iPod/i.test(ua)) {
+        platform = 'iOS';
+    }
+
+    return `${browser} ${platform}`;
+}
+
+function renderSubscriptions(subscriptions, currentEndpoint = null) {
+    subscriptionsList.innerHTML = '';
+
+    if (!subscriptions || subscriptions.length === 0) {
+        subscriptionsEmpty.classList.remove('d-none');
+        return;
+    }
+
+    subscriptionsEmpty.classList.add('d-none');
+
+    for (const item of subscriptions) {
+        const isCurrentDevice = currentEndpoint !== null && item.endpoint === currentEndpoint;
+        const row = document.createElement('div');
+        row.className = 'list-group-item d-flex justify-content-between align-items-start gap-3';
+        row.innerHTML = `
+            <div class="flex-grow-1">
+                <div class="fw-semibold">${escapeHtml(item.deviceLabel || 'Unbekanntes Gerät')}</div>
+                <div class="fw-semibold small mb-1">${escapeHtml(item.endpointPreview)}</div>
+                <div class="text-muted small">Registriert: ${escapeHtml(formatDate(item.createdAt))}</div>
+                ${isCurrentDevice ? '<span class="badge bg-success mt-2">Dieses Gerät</span>' : ''}
+            </div>
+            <button class="btn btn-sm btn-outline-danger" data-subscription-id="${item.id}" type="button">
+                <i class="bi bi-trash"></i> Entfernen
+            </button>
+        `;
+
+        subscriptionsList.appendChild(row);
+    }
+}
+
+async function loadSubscriptions() {
+    try {
+        const listResponse = await fetch('{{ path('myframework_notifications_subscriptions') }}');
+        if (!listResponse.ok) {
+            throw new Error(`HTTP ${listResponse.status}`);
+        }
+
+        const listResult = await listResponse.json();
+        const subscriptions = listResult.subscriptions ?? [];
+
+        let currentEndpoint = null;
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            currentEndpoint = subscription?.endpoint ?? null;
+        } catch {
+            currentEndpoint = null;
+        }
+
+        renderSubscriptions(subscriptions, currentEndpoint);
+    } catch (error) {
+        console.error('Loading subscriptions failed:', error);
+        subscriptionsList.innerHTML = '';
+        subscriptionsEmpty.classList.remove('d-none');
+        subscriptionsEmpty.textContent = 'Subscriptions konnten nicht geladen werden.';
+    }
+}
+
+async function removeSubscription(subscriptionId) {
+    const deleteUrlTemplate = '{{ path('myframework_notifications_subscriptions_delete', {'id': 0}) }}';
+    const deleteUrl = deleteUrlTemplate.replace(/0$/, String(subscriptionId));
+
+    const response = await fetch(deleteUrl, {
+        method: 'DELETE'
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+    }
 }
 
 // Check if push notifications are supported
@@ -224,18 +349,40 @@ async function subscribe() {
             applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
 
+        const subscriptionJson = subscription.toJSON();
+
+        const missingFields = [];
+        if (!subscriptionJson.endpoint) missingFields.push('endpoint');
+        if (!subscriptionJson.keys?.auth) missingFields.push('keys.auth');
+        if (!subscriptionJson.keys?.p256dh) missingFields.push('keys.p256dh');
+
+        if (missingFields.length > 0) {
+            throw new Error(`Ungültige Subscription-Daten: ${missingFields.join(', ')}`);
+        }
+
+        const subscriptionData = {
+            endpoint: subscriptionJson.endpoint,
+            keys: {
+                auth: subscriptionJson.keys.auth,
+                p256dh: subscriptionJson.keys.p256dh
+            },
+            deviceLabel: detectDeviceLabel(),
+        };
+
         // Send subscription to server
         const response = await fetch('{{ path('myframework_notifications_subscribe') }}', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(subscription.toJSON())
+            body: JSON.stringify(subscriptionData)
         });
 
         if (response.ok) {
-            showStatus('✅ Benachrichtigungen erfolgreich aktiviert!', 'success');
+            showStatus('✅ Benachrichtigungen für dieses Gerät erfolgreich aktiviert!', 'success');
             await updateUI();
+            await loadSubscriptions();
         } else {
-            throw new Error('Speichern des Abonnements fehlgeschlagen');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || 'Speichern des Abonnements fehlgeschlagen');
         }
     } catch (error) {
         console.error('Subscription failed:', error);
@@ -254,18 +401,24 @@ async function unsubscribe() {
         const subscription = await registration.pushManager.getSubscription();
 
         if (subscription) {
-            await subscription.unsubscribe();
-
             // Remove from server
-            await fetch('{{ path('myframework_notifications_unsubscribe') }}', {
+            const response = await fetch('{{ path('myframework_notifications_unsubscribe') }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ endpoint: subscription.endpoint })
             });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || 'Server konnte Subscription nicht entfernen');
+            }
+
+            await subscription.unsubscribe();
         }
 
-        showStatus('Benachrichtigungen deaktiviert', 'info');
+        showStatus('Benachrichtigungen für dieses Gerät deaktiviert', 'info');
         await updateUI();
+        await loadSubscriptions();
     } catch (error) {
         console.error('Unsubscribe failed:', error);
         showStatus('❌ Deaktivierung fehlgeschlagen', 'danger');
@@ -281,6 +434,20 @@ async function sendTest() {
         const response = await fetch('{{ path('myframework_notifications_test') }}', {
             method: 'POST'
         });
+
+        const contentType = response.headers.get('content-type') || '';
+
+        if (!response.ok) {
+            const bodyText = await response.text().catch(() => '');
+            console.error('Test request failed:', response.status, bodyText);
+            throw new Error(`Server-Fehler: ${response.status}`);
+        }
+
+        if (!contentType.includes('application/json')) {
+            const bodyText = await response.text().catch(() => '');
+            console.error('Unexpected non-JSON test response:', bodyText);
+            throw new Error('Unerwartete Server-Antwort (kein JSON)');
+        }
 
         const result = await response.json();
 
@@ -308,6 +475,20 @@ async function sendTest() {
         pushManager: 'PushManager' in window
     });
 
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.getRegistration('/');
+            if (registration) {
+                await registration.update();
+                if (registration.waiting) {
+                    registration.waiting.postMessage({ type: 'skip-waiting' });
+                }
+            }
+        } catch (error) {
+            console.warn('Service worker update skipped:', error);
+        }
+    }
+
     if (!(await checkSupport())) {
         console.log('❌ Support check failed');
         return;
@@ -316,6 +497,36 @@ async function sendTest() {
     console.log('✅ Support check passed');
     controlsDiv.classList.remove('d-none');
     await updateUI();
+    await loadSubscriptions();
+
+    subscriptionsList.addEventListener('click', async (event) => {
+        const button = event.target.closest('button[data-subscription-id]');
+        if (!button) {
+            return;
+        }
+
+        const subscriptionId = Number(button.dataset.subscriptionId);
+        if (!Number.isInteger(subscriptionId)) {
+            return;
+        }
+
+        const originalHtml = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+        try {
+            await removeSubscription(subscriptionId);
+            showStatus('Subscription entfernt.', 'info');
+            await updateUI();
+            await loadSubscriptions();
+        } catch (error) {
+            console.error('Removing subscription failed:', error);
+            showStatus('❌ Entfernen fehlgeschlagen: ' + error.message, 'danger');
+        } finally {
+            button.disabled = false;
+            button.innerHTML = originalHtml;
+        }
+    });
 
     subscribeBtn.addEventListener('click', subscribe);
     unsubscribeBtn.addEventListener('click', unsubscribe);

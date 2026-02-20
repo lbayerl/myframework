@@ -36,6 +36,14 @@ final class PushSubscriptionRepository extends ServiceEntityRepository
         return $this->findOneBy(['endpoint' => $endpoint]);
     }
 
+    public function findByIdAndUser(int $id, User $user): ?PushSubscription
+    {
+        return $this->findOneBy([
+            'id' => $id,
+            'user' => $user,
+        ]);
+    }
+
     /**
      * @return PushSubscription[]
      */

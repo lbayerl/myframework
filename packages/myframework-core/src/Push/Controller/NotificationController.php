@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MyFramework\Core\Push\Controller;
 
 use MyFramework\Core\Push\Service\PushService;
+use MyFramework\Core\Entity\PushSubscription;
 use MyFramework\Core\Entity\User;
 use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -42,12 +43,21 @@ final class NotificationController extends AbstractController
             return $this->json(['error' => 'Invalid subscription data'], Response::HTTP_BAD_REQUEST);
         }
 
+        $deviceLabel = null;
+        if (is_string($data['deviceLabel'] ?? null)) {
+            $deviceLabel = mb_substr(trim($data['deviceLabel']), 0, 255);
+            if ($deviceLabel === '') {
+                $deviceLabel = null;
+            }
+        }
+
         try {
             $this->pushService->subscribe(
                 $user,
                 $data['endpoint'],
                 $data['keys']['auth'],
-                $data['keys']['p256dh']
+                $data['keys']['p256dh'],
+                $deviceLabel,
             );
 
             $this->logger->info('User subscribed to push notifications', [
@@ -95,6 +105,65 @@ final class NotificationController extends AbstractController
                 'error_message' => $e->getMessage(),
             ]);
             return $this->json(['error' => 'Failed to unsubscribe from push notifications'], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    #[Route('/subscriptions', name: 'subscriptions', methods: ['GET'])]
+    public function subscriptions(): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        $subscriptions = $this->pushService->getSubscriptionsByUser($user);
+
+        $items = array_map(static function (PushSubscription $subscription): array {
+            $endpoint = $subscription->getEndpoint();
+            $endpointPreview = strlen($endpoint) > 80
+                ? substr($endpoint, 0, 40) . '…' . substr($endpoint, -20)
+                : $endpoint;
+
+            return [
+                'id' => $subscription->getId(),
+                'endpoint' => $endpoint,
+                'endpointPreview' => $endpointPreview,
+                'deviceLabel' => $subscription->getDeviceLabel(),
+                'createdAt' => $subscription->getCreatedAt()->format(DATE_ATOM),
+            ];
+        }, $subscriptions);
+
+        return $this->json([
+            'success' => true,
+            'subscriptions' => $items,
+        ]);
+    }
+
+    #[Route('/subscriptions/{id}', name: 'subscriptions_delete', methods: ['DELETE'])]
+    public function deleteSubscription(int $id): JsonResponse
+    {
+        /** @var User $user */
+        $user = $this->getUser();
+
+        try {
+            $deleted = $this->pushService->unsubscribeByUserAndId($user, $id);
+            if (!$deleted) {
+                return $this->json(['error' => 'Subscription not found'], Response::HTTP_NOT_FOUND);
+            }
+
+            $this->logger->info('User deleted push subscription', [
+                'user_id' => $user->getId(),
+                'subscription_id' => $id,
+            ]);
+
+            return $this->json(['success' => true]);
+        } catch (\Exception $e) {
+            $this->logger->error('Failed to delete push subscription', [
+                'user_id' => $user->getId(),
+                'subscription_id' => $id,
+                'error_class' => get_class($e),
+                'error_message' => $e->getMessage(),
+            ]);
+
+            return $this->json(['error' => 'Failed to delete subscription'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
     }
 

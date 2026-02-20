@@ -31,6 +31,9 @@ final class PushSubscription
     #[ORM\Column(type: 'string', length: 255)]
     private string $p256dhKey;
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    private ?string $deviceLabel;
+
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $createdAt;
 
@@ -39,11 +42,13 @@ final class PushSubscription
         string $endpoint,
         string $authToken,
         string $p256dhKey,
+        ?string $deviceLabel = null,
     ) {
         $this->user = $user;
         $this->endpoint = $endpoint;
         $this->authToken = $authToken;
         $this->p256dhKey = $p256dhKey;
+        $this->deviceLabel = $deviceLabel;
         $this->createdAt = new \DateTimeImmutable();
     }
 
@@ -77,6 +82,11 @@ final class PushSubscription
         return $this->createdAt;
     }
 
+    public function getDeviceLabel(): ?string
+    {
+        return $this->deviceLabel;
+    }
+
     public function updateUser(User $user): void
     {
         $this->user = $user;
@@ -86,5 +96,10 @@ final class PushSubscription
     {
         $this->authToken = $authToken;
         $this->p256dhKey = $p256dhKey;
+    }
+
+    public function updateDeviceLabel(?string $deviceLabel): void
+    {
+        $this->deviceLabel = $deviceLabel;
     }
 }

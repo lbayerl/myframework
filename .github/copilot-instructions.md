@@ -39,15 +39,30 @@ Apps using the bundle configure via:
 1. Environment variables (`.env`, `.env.local`)
 2. Optional YAML override: `config/packages/my_framework_core.yaml`
 
+## Local Development Environment (Windows)
+
+### PHP Executable
+Always use the explicit PHP 8.5 binary — **never** rely on `php` from PATH, as the version there is not compatible:
+```powershell
+L:\php\php85\php.exe bin/console [command]
+L:\php\php85\php.exe vendor/bin/phpunit
+```
+
+### No Pipe Symbols in Terminal Commands
+Do **not** use `|` (pipe) in terminal/CLI commands. Pipe output breaks the agent's ability to read terminal results, causing the agent to get stuck. Use alternatives:
+- Instead of `php bin/console debug:router | grep myframework`, run `php bin/console debug:router` and read the full output.
+- Instead of `Get-Process | Where-Object {...}`, store in a variable first.
+- Split chained pipe commands into separate sequential calls.
+
 ## Development Workflows
 
 ### Working on Bundle Features
 1. Make changes in `packages/myframework-core/src/`
 2. Changes are **instantly available** in both apps due to symlink
-3. Test in smoke app: `cd apps/smoke && php bin/console [command]`
-4. Test in real app: `cd apps/kohlkopf && php bin/console [command]`
-5. Run bundle unit tests: `cd packages/myframework-core && vendor/bin/phpunit`
-6. Run smoke app tests: `cd apps/smoke && php vendor/bin/phpunit`
+3. Test in smoke app: `cd apps/smoke` then `L:\php\php85\php.exe bin/console [command]`
+4. Test in real app: `cd apps/kohlkopf` then `L:\php\php85\php.exe bin/console [command]`
+5. Run bundle unit tests: `cd packages/myframework-core` then `L:\php\php85\php.exe vendor/bin/phpunit`
+6. Run smoke app tests: `cd apps/smoke` then `L:\php\php85\php.exe vendor/bin/phpunit`
 
 ### Testing Strategy
 - **Bundle tests** (`packages/myframework-core/tests/`): Minimal unit tests for bundle logic
@@ -59,19 +74,25 @@ Apps using the bundle configure via:
 ```powershell
 cd apps/smoke
 
-# Start infrastructure (Postgres + optional Mailpit)
-docker compose up -d
-
 # Install dependencies (if needed)
 composer install
 
 # Run migrations
-php bin/console doctrine:migrations:migrate
+L:\php\php85\php.exe bin/console doctrine:migrations:migrate
 
-# Start development server (choose one)
-php -S localhost:8000 -t public
-# OR
-symfony server:start
+# Start development server
+L:\php\php85\php.exe -S localhost:8000 -t public
+```
+
+### Running the Kohlkopf App
+```powershell
+cd apps/kohlkopf
+
+# Run migrations
+L:\php\php85\php.exe bin/console doctrine:migrations:migrate
+
+# Start development server
+L:\php\php85\php.exe -S localhost:8000 -t public
 ```
 
 ## Bundle Integration Patterns
@@ -132,6 +153,44 @@ security:
   - `base_home.html.twig`: Authenticated layout with navigation
   - `security/`: Login, register, password reset, email verification templates
   - `notifications/`: Push notification management UI
+
+## Kohlkopf App Architecture
+
+The `apps/kohlkopf/` app is a real-world production concert management PWA built on top of the bundle. It uses **MariaDB** (accessed via SSH tunnel on port 3307 locally) and Symfony 7.4 LTS.
+
+### Domain Model
+- **Concert**: Core entity. Tracks artist/band (`title`), date (`whenAt`), venue (`whereText`), status (`ConcertStatus` enum), and optional artist enrichment data from external APIs (`mbid`, `genres`, `wikipediaUrl`, `artistDescription`, `artistImage`).
+- **ConcertAttendee**: Links a `Concert` to a `User` (from bundle). Tracks attendance/RSVP state.
+- **Guest**: Non-registered attendee, linked to a `Concert`. Can be converted to a full `User`.
+- **Ticket**: Physical or digital ticket entity linked to a `Concert` and `User`.
+- **Payment**: Payment record linked to a `Ticket`.
+
+### Directory Structure
+- `src/Entity/`: `Concert`, `ConcertAttendee`, `Guest`, `Payment`, `Ticket`
+- `src/Controller/`: `ConcertController`, `AttendeeController`, `GuestController`, `TicketController`, `ProfileController`, `LandingController`, `LegalController`
+- `src/Service/`: `ArtistEnrichmentService` (MusicBrainz + Wikipedia lookup), `ConcertWarningService`, `GuestConversionService`
+- `src/Command/`: `FetchMissingImagesCommand`, `TestAttendeeQueryCommand`, `TestWikipediaCommand`
+- `src/Enum/`: `ConcertStatus` and other domain enums
+- `src/Form/`, `src/Repository/`, `src/EventSubscriber/`
+
+### External API Integration
+`ArtistEnrichmentService` uses `MusicBrainzClient` and `WikipediaClient` to auto-populate artist data on concerts. The enrichment commands can be run via:
+```powershell
+cd apps/kohlkopf
+L:\php\php85\php.exe bin/console app:enrich-concerts
+L:\php\php85\php.exe bin/console app:fetch-missing-images
+```
+
+### Doctrine Migrations in Kohlkopf
+
+**Known issue**: `doctrine:migrations:diff` always reports a "metadata out of sync" error in this app. This appears to be caused by the dual entity mapping (App entities + MyFrameworkCore bundle entities) combined with the `underscore_number_aware` naming strategy and the UUID custom ID generator. The diff command cannot be trusted to produce correct output.
+
+**Established approach — always write migrations manually:**
+1. Write the migration SQL by hand as an `ALTER TABLE` statement.
+2. Create a new file in `apps/kohlkopf/migrations/` following the naming convention `Version{YYYYMMDDHHmmss}.php` (e.g. `Version20260219120000.php`).
+3. Extend `AbstractMigration`, implement `up()` and `down()`, and use `$this->addSql('...')`.
+4. Run: `L:\php\php85\php.exe bin/console doctrine:migrations:migrate`
+5. **Never run** `doctrine:migrations:diff` or `doctrine:schema:update` in kohlkopf.
 
 ## Setting Up a New App
 
@@ -294,13 +353,13 @@ DATABASE_URL="mysql://symfony:password@127.0.0.1:3307/symf_yourapp?serverVersion
 ```
 
 5. **Run migrations** to create tables:
-```bash
-php bin/console doctrine:migrations:migrate
+```powershell
+L:\php\php85\php.exe bin/console doctrine:migrations:migrate
 ```
 
 ### Generating VAPID Keys (for Web Push)
-```bash
-php bin/console myframework:vapid:generate --subject="mailto:your@email.com"
+```powershell
+L:\php\php85\php.exe bin/console myframework:vapid:generate --subject="mailto:your@email.com"
 # Add output to .env.local
 ```
 
@@ -486,10 +545,10 @@ app.register('myframework--pullrefresh', PullrefreshController);
 4. Templates go in `resources/views/` and are accessible via `@MyFrameworkCore` namespace
 
 ### Debugging Integration Issues
-- Check if `vendor/myframework/core` is a symlink: `ls -la apps/smoke/vendor/myframework/`
-- Clear cache: `php bin/console cache:clear`
-- Verify routing: `php bin/console debug:router | grep myframework`
-- Check container: `php bin/console debug:container MyFramework`
+- Check if `vendor/myframework/core` is a symlink: `Get-Item apps/smoke/vendor/myframework/core`
+- Clear cache: `L:\php\php85\php.exe bin/console cache:clear`
+- Verify routing: `L:\php\php85\php.exe bin/console debug:router` (read full output, do not pipe)
+- Check container: `L:\php\php85\php.exe bin/console debug:container MyFramework`
 
 ## Known Quirks
 
@@ -502,3 +561,9 @@ app.register('myframework--pullrefresh', PullrefreshController);
 4. **Version constraints are loose**: Bundle has `branch-alias dev-main: 0.1.x-dev`. Apps should pin to specific versions once releases exist.
 
 5. **No explicit bundle config file**: Apps don't need `config/packages/my_framework_core.yaml` - all config has ENV defaults. Only create if overriding defaults.
+
+6. **Doctrine migrations diff broken in kohlkopf**: `doctrine:migrations:diff` always produces a misleading "metadata out of sync" error in the kohlkopf app. Do not use it. Always write migrations manually — see the "Doctrine Migrations in Kohlkopf" section above.
+
+7. **PHP executable on Windows**: The `php` from PATH is not the right version. Always use `L:\php\php85\php.exe` explicitly.
+
+8. **No pipes in terminal commands**: Using `|` in terminal commands breaks agent output parsing. Run commands without pipes and read the full output.

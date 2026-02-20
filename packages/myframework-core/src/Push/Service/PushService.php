@@ -27,28 +27,32 @@ final class PushService
         string $endpoint,
         string $authToken,
         string $p256dhKey,
+        ?string $deviceLabel = null,
     ): PushSubscription {
         $existing = $this->repository->findByEndpoint($endpoint);
         if ($existing !== null) {
             $hasChangedUser = $existing->getUser()->getId() !== $user->getId();
             $hasChangedKeys = $existing->getAuthToken() !== $authToken || $existing->getP256dhKey() !== $p256dhKey;
+            $hasChangedLabel = $existing->getDeviceLabel() !== $deviceLabel;
 
-            if ($hasChangedUser || $hasChangedKeys) {
+            if ($hasChangedUser || $hasChangedKeys || $hasChangedLabel) {
                 $existing->updateUser($user);
                 $existing->updateKeys($authToken, $p256dhKey);
+                $existing->updateDeviceLabel($deviceLabel);
                 $this->repository->save($existing);
 
                 $this->logger->info('Push subscription updated for existing endpoint', [
                     'endpoint' => $endpoint,
                     'user_changed' => $hasChangedUser,
                     'keys_changed' => $hasChangedKeys,
+                    'label_changed' => $hasChangedLabel,
                 ]);
             }
 
             return $existing;
         }
 
-        $subscription = new PushSubscription($user, $endpoint, $authToken, $p256dhKey);
+        $subscription = new PushSubscription($user, $endpoint, $authToken, $p256dhKey, $deviceLabel);
         $this->repository->save($subscription);
 
         return $subscription;
@@ -71,6 +75,26 @@ final class PushService
         if ($subscription !== null && $subscription->getUser()->getId() === $user->getId()) {
             $this->repository->remove($subscription);
         }
+    }
+
+    /**
+     * @return PushSubscription[]
+     */
+    public function getSubscriptionsByUser(User $user): array
+    {
+        return $this->repository->findByUser($user);
+    }
+
+    public function unsubscribeByUserAndId(User $user, int $subscriptionId): bool
+    {
+        $subscription = $this->repository->findByIdAndUser($subscriptionId, $user);
+        if ($subscription === null) {
+            return false;
+        }
+
+        $this->repository->remove($subscription);
+
+        return true;
     }
 
     /**
@@ -137,11 +161,12 @@ final class PushService
         foreach ($webPush->flush() as $report) {
             $reports[] = $report;
 
-            // Bei 404/410 (Subscription expired/ungültig) automatisch löschen
-            if ($report->isSubscriptionExpired()) {
+            if ($this->shouldRemoveSubscription($report)) {
                 $endpoint = $report->getEndpoint();
-                $this->logger->info('Push subscription expired, removing', [
+                $this->logger->info('Push subscription invalid, removing', [
                     'endpoint' => $endpoint,
+                    'expired' => $report->isSubscriptionExpired(),
+                    'reason' => $report->getReason(),
                 ]);
                 $this->unsubscribe($endpoint);
             } elseif (!$report->isSuccess()) {
@@ -159,5 +184,48 @@ final class PushService
         }
 
         return $reports;
+    }
+
+    private function shouldRemoveSubscription(MessageSentReport $report): bool
+    {
+        if ($report->isSubscriptionExpired() || $this->hasVapidMismatch($report)) {
+            return true;
+        }
+
+        if ($report->isSuccess()) {
+            return false;
+        }
+
+        $reason = strtolower($report->getReason() ?? '');
+
+        if ($reason === '') {
+            return false;
+        }
+
+        return str_contains($reason, '410')
+            || str_contains($reason, '404')
+            || str_contains($reason, 'gone')
+            || str_contains($reason, 'not found')
+            || str_contains($reason, 'invalid subscription')
+            || str_contains($reason, 'subscription is no longer valid')
+            || str_contains($reason, 'subscription does not exist')
+            || str_contains($reason, 'endpoint is no longer valid');
+    }
+
+    private function hasVapidMismatch(MessageSentReport $report): bool
+    {
+        if ($report->isSuccess()) {
+            return false;
+        }
+
+        $reason = strtolower($report->getReason() ?? '');
+
+        if ($reason === '') {
+            return false;
+        }
+
+        return str_contains($reason, 'vapid credentials in the authorization header do not correspond')
+            || str_contains($reason, 'vapid public key mismatch')
+            || (str_contains($reason, 'unauthorized') && str_contains($reason, 'vapid'));
     }
 }

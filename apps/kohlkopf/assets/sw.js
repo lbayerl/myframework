@@ -1,6 +1,22 @@
 // Service Worker with Push Notification handling for Kohlkopf App
 // This file handles push notifications even when the app is closed
 
+self.addEventListener('install', (event) => {
+    event.waitUntil(self.skipWaiting());
+});
+
+self.addEventListener('activate', (event) => {
+    event.waitUntil(self.clients.claim());
+});
+
+self.addEventListener('message', (event) => {
+    if (!event.data || event.data.type !== 'skip-waiting') {
+        return;
+    }
+
+    event.waitUntil(self.skipWaiting());
+});
+
 self.addEventListener('push', (event) => {
     if (!event.data) {
         console.warn('[SW] Push event received but no data');
@@ -19,7 +35,6 @@ self.addEventListener('push', (event) => {
 
     console.log('[SW] Push notification received:', data);
 
-    // Default notification title (German: "Notification")
     const title = data.title || 'Benachrichtigung';
     const options = {
         body: data.body || '',
@@ -31,12 +46,15 @@ self.addEventListener('push', (event) => {
     event.waitUntil(
         self.registration.showNotification(title, options)
             .then(() => console.log('[SW] Notification shown:', title))
-            .catch(error => console.error('[SW] Failed to show notification:', error))
+            .catch(error => {
+                console.error('[SW] Failed to show notification:', error);
+            })
     );
 });
 
 self.addEventListener('notificationclick', (event) => {
     console.log('[SW] Notification clicked:', event.notification);
+
     event.notification.close();
     const url = event.notification.data?.url || '/';
     event.waitUntil(

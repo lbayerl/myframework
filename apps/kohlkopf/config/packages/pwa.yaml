@@ -20,7 +20,7 @@ pwa:
 
     serviceworker:
         enabled: true
-        src: 'assets/sw.js'
+        src: 'public/sw.js'
         dest: '/sw.js'
         scope: '/'
         skip_waiting: false

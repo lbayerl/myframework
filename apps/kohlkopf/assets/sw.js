@@ -38,10 +38,13 @@ self.addEventListener('push', (event) => {
     const title = data.title || 'Benachrichtigung';
     const options = {
         body: data.body || '',
-        icon: data.icon || '/images/notification-icon.png',
-        badge: data.badge || '/images/notification-badge.png',
+        icon: data.icon || '/favicon-196.png',
         data: { url: data.url || '/' },
     };
+
+    if (typeof data.badge === 'string' && data.badge.trim() !== '') {
+        options.badge = data.badge;
+    }
 
     event.waitUntil(
         self.registration.showNotification(title, options)

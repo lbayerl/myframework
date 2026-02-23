@@ -1,6 +1,6 @@
 # Documentation available at https://pwa.spomky-labs.com/
 pwa:
-    asset_compiler: true
+    asset_compiler: false
 
     manifest:
         enabled: true
@@ -15,8 +15,12 @@ pwa:
         start_url: '/'
         scope: '/'
         icons:
-            - src: 'images/icon.svg'
-              sizes: 0
+            - src: 'images/manifest-icon-192.maskable.png'
+              sizes: [192]
+              purpose: 'any maskable'
+            - src: 'images/manifest-icon-512.maskable.png'
+              sizes: [512]
+              purpose: 'any maskable'
 
     # Service Worker is managed manually (public/sw.js served as static file)
     # The asset_compiler overwrites SW content, stripping push notification handlers.

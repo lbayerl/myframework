@@ -1,4 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="64" fill="#0d6efd"/>
-  <text x="50%" y="50%" text-anchor="middle" dy=".35em" fill="white" font-family="system-ui" font-size="200" font-weight="bold">K</text>
+<svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+ <g id="Layer_1">
+  <title>Layer 1</title>
+  <rect rx="40" stroke-width="12" id="svg_1" height="783.99998" width="558.00002" y="170.00006" x="232.99999" stroke="#000" fill="#A0D58A"/>
+  <ellipse ry="35" rx="35" id="svg_5" cy="250.5" cx="512" stroke-width="5" stroke="#000" fill="#000000"/>
+  <line id="svg_6" y2="16" x2="666" y1="250" x1="515" stroke-width="15" stroke="#000" fill="none"/>
+  <line id="svg_7" y2="170" x2="459" y1="16" x1="340" stroke-width="15" stroke="#000" fill="none"/>
+  <ellipse ry="10" rx="10" id="svg_10" cy="884" cx="513" stroke-width="15" stroke="#000" fill="#000000"/>
+  <rect rx="4" id="svg_11" height="2" width="186" y="881.00001" x="546" stroke-width="15" stroke="#000" fill="#000000"/>
+  <rect rx="4" id="svg_12" height="2" width="186" y="881.00001" x="293" stroke-width="15" stroke="#000" fill="#000000"/>
+  <ellipse ry="10" rx="10" id="svg_13" cy="362" cx="512" stroke-width="15" stroke="#000" fill="#000000"/>
+  <rect rx="4" id="svg_14" height="2" width="186" y="359.00001" x="545" stroke-width="15" stroke="#000" fill="#000000"/>
+  <rect rx="4" id="svg_15" height="2" width="186" y="359.00001" x="292" stroke-width="15" stroke="#000" fill="#000000"/>
+  <ellipse ry="190.49999" rx="198.99999" id="svg_16" cy="619.5" cx="515.99999" stroke-width="15" fill="#396849"/>
+  <ellipse ry="184" rx="166.49999" id="svg_17" cy="622.00005" cx="547.49998" stroke-width="15" fill="#729C62"/>
+  <path id="svg_18" d="m571.16991,804.00005c-61.97233,0 -112.16991,-78.98619 -112.16991,-176.50001c0,-97.51382 50.19758,-176.50001 112.16991,-176.50001c61.97233,0 114.83007,76.98619 114.83007,174.50001c0,97.51382 -52.85774,178.50001 -114.83007,178.50001z" opacity="undefined" stroke-width="15" fill="#619E73"/>
+  <text stroke="#7B572D" transform="matrix(3.03017, 0, 0, 3.04525, -823.073, -925.72)" font-weight="bold" xml:space="preserve" text-anchor="start" font-family="Noto Sans JP" font-size="200" id="svg_19" y="573.93383" x="360.4325" stroke-width="2" fill="#FABA6F">K</text>
+ </g>
+
 </svg>

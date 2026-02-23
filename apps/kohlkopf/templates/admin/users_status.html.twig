@@ -1,0 +1,71 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Benutzerstatus - Admin{% endblock %}
+
+{% block page_title %}Admin{% endblock %}
+
+{% block page_subtitle %}Status aller Benutzer{% endblock %}
+
+{% block content %}
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="mb-0">Benutzerstatus</h2>
+            <span class="badge bg-secondary">{{ rows|length }} Benutzer</span>
+        </div>
+
+        <div class="alert alert-light border mb-3">
+            <i class="bi bi-shield-lock me-2"></i>
+            Diese Übersicht ist nur für Administratoren sichtbar.
+        </div>
+
+        {% if rows is not empty %}
+            <div class="table-responsive">
+                <table class="table table-striped align-middle">
+                    <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>E-Mail</th>
+                        <th>Verifiziert</th>
+                        <th>Push-Abos</th>
+                        <th>Art der Push-Abos</th>
+                        <th>Letzter Login</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td>{{ row.name }}</td>
+                            <td><a href="mailto:{{ row.email }}">{{ row.email }}</a></td>
+                            <td>
+                                {% if row.isVerified %}
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Ja</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark"><i class="bi bi-exclamation-circle"></i> Nein</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-primary">{{ row.pushSubscriptionCount }}</span>
+                            </td>
+                            <td>
+                                {% if row.pushSubscriptionTypes is not empty %}
+                                    {% for type in row.pushSubscriptionTypes %}
+                                        <span class="badge bg-secondary">{{ type }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td><span class="text-muted">{{ row.lastLoginLabel }}</span></td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                Keine Benutzer gefunden.
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

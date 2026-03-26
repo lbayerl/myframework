@@ -46,6 +46,9 @@
                                     <i class="bi bi-pencil"></i>
                                 </a>
                                 {% if is_granted('ROLE_ADMIN') %}
+                                    <a href="{{ path('concert_image_upload', {id: concert.id}) }}" class="btn btn-outline-secondary btn-sm" title="Konzertbild hochladen">
+                                        <i class="bi bi-image"></i>
+                                    </a>
                                     <form method="post" action="{{ path('concert_delete', {id: concert.id}) }}"
                                           onsubmit="return confirm('Konzert und alle zugehörigen Tickets wirklich löschen?');"
                                           style="display: inline;">

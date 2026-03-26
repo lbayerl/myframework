@@ -24,7 +24,7 @@ use MyFramework\Core\Entity\User;
  */
 final class ConcertWarningService
 {
-    private const int SOON_DAYS = 7;
+    private const SOON_DAYS = 7;
 
     public function __construct(
         private readonly ConcertRepository $concertRepo,

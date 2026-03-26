@@ -22,6 +22,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 final class ArtistEnrichmentService
 {
     private const IMAGE_DIR = 'images/artists';
+    private const MANUAL_IMAGE_WEB_PREFIX = '/images/artists/manual/';
 
     public function __construct(
         private readonly MusicBrainzClient $musicBrainzClient,
@@ -59,15 +60,22 @@ final class ArtistEnrichmentService
      */
     public function reEnrich(Concert $concert): void
     {
-        // Delete old image
-        $this->deleteImage($concert->getArtistImage());
+        $currentImage = $concert->getArtistImage();
+        $hasManualImage = $this->isManualImagePath($currentImage);
+
+        // Delete old auto-enriched image only. Manually uploaded images must be preserved.
+        if (!$hasManualImage) {
+            $this->deleteImage($currentImage);
+        }
 
         // Clear old metadata
         $concert->setMbid(null);
         $concert->setGenres(null);
         $concert->setWikipediaUrl(null);
         $concert->setArtistDescription(null);
-        $concert->setArtistImage(null);
+        if (!$hasManualImage) {
+            $concert->setArtistImage(null);
+        }
 
         $this->enrich($concert);
     }
@@ -138,6 +146,14 @@ final class ArtistEnrichmentService
 
     private function enrichImage(Concert $concert, string $artistName, ?array $wikiData): void
     {
+        if ($this->isManualImagePath($concert->getArtistImage())) {
+            $this->logger->info('Manual artist image detected; skipping enrichment image overwrite', [
+                'artist' => $artistName,
+                'path' => $concert->getArtistImage(),
+            ]);
+            return;
+        }
+
         if ($wikiData === null) {
             $this->logger->info('No Wikipedia data for image', ['artist' => $artistName]);
             return;
@@ -263,5 +279,14 @@ final class ArtistEnrichmentService
         $suffix = $concertId ? substr($concertId, 0, 8) : substr(md5($artistName . time()), 0, 8);
 
         return sprintf('%s-%s.%s', $slug, $suffix, $extension);
+    }
+
+    private function isManualImagePath(?string $path): bool
+    {
+        if ($path === null || $path === '') {
+            return false;
+        }
+
+        return str_starts_with($path, self::MANUAL_IMAGE_WEB_PREFIX);
     }
 }

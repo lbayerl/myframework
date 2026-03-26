@@ -15,11 +15,13 @@ use App\Repository\ConcertRepository;
 use App\Repository\GuestRepository;
 use App\Repository\TicketRepository;
 use App\Service\ArtistEnrichmentService;
+use App\Service\ConcertImageUploadService;
 use App\Service\ConcertWarningService;
 use Doctrine\ORM\EntityManagerInterface;
 use MyFramework\Core\Entity\User;
 use MyFramework\Core\Push\Service\PushService;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -34,6 +36,7 @@ final class ConcertController extends AbstractController
         private readonly TicketRepository $ticketRepo,
         private readonly PushService $pushService,
         private readonly ArtistEnrichmentService $artistEnrichmentService,
+        private readonly ConcertImageUploadService $concertImageUploadService,
         private readonly ConcertWarningService $warningService,
     ) {
     }
@@ -84,6 +87,9 @@ final class ConcertController extends AbstractController
     {
         // Rechte: Ersteller oder Admin
         $user = $this->getUser();
+        if (!$user instanceof User) {
+            throw $this->createAccessDeniedException();
+        }
         if ($concert->getCreatedBy()?->getId() !== $user?->getId() && !$this->isGranted('ROLE_ADMIN')) {
             throw $this->createAccessDeniedException();
         }
@@ -311,6 +317,61 @@ final class ConcertController extends AbstractController
         return new Response($content, 200, [
             'Content-Type' => 'text/calendar; charset=utf-8',
             'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    #[Route('/{id}/image', name: 'concert_image_upload', methods: ['GET', 'POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function uploadImage(Concert $concert, Request $request, EntityManagerInterface $em): Response
+    {
+        if ($request->isMethod('POST')) {
+            $token = (string) $request->request->get('_token', '');
+            if (!$this->isCsrfTokenValid('concert_image_upload_' . $concert->getId(), $token)) {
+                throw $this->createAccessDeniedException('Ungültiges CSRF-Token.');
+            }
+
+            $removeImage = (bool) $request->request->get('remove_image', false);
+            if ($removeImage) {
+                $this->artistEnrichmentService->deleteImage($concert->getArtistImage());
+                $concert->setArtistImage(null);
+                $concert->touch();
+                $em->flush();
+
+                $this->addFlash('success', 'Konzertbild wurde entfernt.');
+                return $this->redirectToRoute('concert_show', ['id' => $concert->getId()]);
+            }
+
+            $uploadedFile = $request->files->get('artist_image');
+            if (!$uploadedFile instanceof UploadedFile) {
+                $this->addFlash('error', 'Bitte wähle eine Bilddatei aus.');
+                return $this->redirectToRoute('concert_image_upload', ['id' => $concert->getId()]);
+            }
+
+            try {
+                $oldImage = $concert->getArtistImage();
+                $newImage = $this->concertImageUploadService->storeUploadedImage($concert, $uploadedFile);
+
+                $concert->setArtistImage($newImage);
+                $concert->touch();
+                $em->flush();
+
+                if ($oldImage !== null && $oldImage !== '' && $oldImage !== $newImage) {
+                    $this->artistEnrichmentService->deleteImage($oldImage);
+                }
+
+                $this->addFlash('success', 'Konzertbild wurde hochgeladen.');
+                return $this->redirectToRoute('concert_show', ['id' => $concert->getId()]);
+            } catch (\InvalidArgumentException $e) {
+                $this->addFlash('error', $e->getMessage());
+            } catch (\Throwable) {
+                $this->addFlash('error', 'Bild konnte nicht hochgeladen werden.');
+            }
+
+            return $this->redirectToRoute('concert_image_upload', ['id' => $concert->getId()]);
+        }
+
+        return $this->render('concert/upload_image.html.twig', [
+            'concert' => $concert,
         ]);
     }
 

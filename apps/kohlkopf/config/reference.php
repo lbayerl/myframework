@@ -208,29 +208,29 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             initial_marking?: list<scalar|Param|null>,
  *             events_to_dispatch?: list<string|Param>|null,
  *             places?: list<array{ // Default: []
- *                 name: scalar|Param|null,
- *                 metadata?: list<mixed>,
+ *                 name?: scalar|Param|null,
+ *                 metadata?: array<string, mixed>,
  *             }>,
- *             transitions: list<array{ // Default: []
- *                 name: string|Param,
+ *             transitions?: list<array{ // Default: []
+ *                 name?: string|Param,
  *                 guard?: string|Param, // An expression to block the transition.
  *                 from?: list<array{ // Default: []
- *                     place: string|Param,
+ *                     place?: string|Param,
  *                     weight?: int|Param, // Default: 1
  *                 }>,
  *                 to?: list<array{ // Default: []
- *                     place: string|Param,
+ *                     place?: string|Param,
  *                     weight?: int|Param, // Default: 1
  *                 }>,
  *                 weight?: int|Param, // Default: 1
- *                 metadata?: list<mixed>,
+ *                 metadata?: array<string, mixed>,
  *             }>,
- *             metadata?: list<mixed>,
+ *             metadata?: array<string, mixed>,
  *         }>,
  *     },
  *     router?: bool|array{ // Router configuration
  *         enabled?: bool|Param, // Default: false
- *         resource: scalar|Param|null,
+ *         resource?: scalar|Param|null,
  *         type?: scalar|Param|null,
  *         cache_dir?: scalar|Param|null, // Deprecated: Setting the "framework.router.cache_dir.cache_dir" configuration option is deprecated. It will be removed in version 8.0. // Default: "%kernel.build_dir%"
  *         default_uri?: scalar|Param|null, // The default URI used to generate URLs in a non-HTTP context. // Default: null
@@ -360,10 +360,10 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         mapping?: array{
  *             paths?: list<scalar|Param|null>,
  *         },
- *         default_context?: list<mixed>,
+ *         default_context?: array<string, mixed>,
  *         named_serializers?: array<string, array{ // Default: []
  *             name_converter?: scalar|Param|null,
- *             default_context?: list<mixed>,
+ *             default_context?: array<string, mixed>,
  *             include_built_in_normalizers?: bool|Param, // Whether to include the built-in normalizers // Default: true
  *             include_built_in_encoders?: bool|Param, // Whether to include the built-in encoders // Default: true
  *         }>,
@@ -427,7 +427,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     },
  *     messenger?: bool|array{ // Messenger configuration
  *         enabled?: bool|Param, // Default: false
- *         routing?: array<string, array{ // Default: []
+ *         routing?: array<string, string|array{ // Default: []
  *             senders?: list<scalar|Param|null>,
  *         }>,
  *         serializer?: array{
@@ -440,7 +440,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         transports?: array<string, string|array{ // Default: []
  *             dsn?: scalar|Param|null,
  *             serializer?: scalar|Param|null, // Service id of a custom serializer to use. // Default: null
- *             options?: list<mixed>,
+ *             options?: array<string, mixed>,
  *             failure_transport?: scalar|Param|null, // Transport name to send failed messages to (after all retries have failed). // Default: null
  *             retry_strategy?: string|array{
  *                 service?: scalar|Param|null, // Service id to override the retry strategy entirely. // Default: null
@@ -462,7 +462,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                 allow_no_senders?: bool|Param, // Default: true
  *             },
  *             middleware?: list<string|array{ // Default: []
- *                 id: scalar|Param|null,
+ *                 id?: scalar|Param|null,
  *                 arguments?: list<mixed>,
  *             }>,
  *         }>,
@@ -634,7 +634,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             lock_factory?: scalar|Param|null, // The service ID of the lock factory used by this limiter (or null to disable locking). // Default: "auto"
  *             cache_pool?: scalar|Param|null, // The cache pool to use for storing the current limiter state. // Default: "cache.rate_limiter"
  *             storage_service?: scalar|Param|null, // The service ID of a custom storage implementation, this precedes any configured "cache_pool". // Default: null
- *             policy: "fixed_window"|"token_bucket"|"sliding_window"|"compound"|"no_limit"|Param, // The algorithm to be used by this limiter.
+ *             policy?: "fixed_window"|"token_bucket"|"sliding_window"|"compound"|"no_limit"|Param, // The algorithm to be used by this limiter.
  *             limiters?: list<scalar|Param|null>,
  *             limit?: int|Param, // The maximum allowed hits in a fixed interval or burst.
  *             interval?: scalar|Param|null, // Configures the fixed interval if "policy" is set to "fixed_window" or "sliding_window". The value must be a number followed by "second", "minute", "hour", "day", "week" or "month" (or their plural equivalent).
@@ -679,7 +679,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         enabled?: bool|Param, // Default: false
  *         message_bus?: scalar|Param|null, // The message bus to use. // Default: "messenger.default_bus"
  *         routing?: array<string, array{ // Default: []
- *             service: scalar|Param|null,
+ *             service?: scalar|Param|null,
  *             secret?: scalar|Param|null, // Default: ""
  *         }>,
  *     },
@@ -761,8 +761,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             }>,
  *         },
  *         ldap?: array{
- *             service: scalar|Param|null,
- *             base_dn: scalar|Param|null,
+ *             service?: scalar|Param|null,
+ *             base_dn?: scalar|Param|null,
  *             search_dn?: scalar|Param|null, // Default: null
  *             search_password?: scalar|Param|null, // Default: null
  *             extra_fields?: list<scalar|Param|null>,
@@ -773,12 +773,12 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             password_attribute?: scalar|Param|null, // Default: null
  *         },
  *         entity?: array{
- *             class: scalar|Param|null, // The full entity class name of your user class.
+ *             class?: scalar|Param|null, // The full entity class name of your user class.
  *             property?: scalar|Param|null, // Default: null
  *             manager_name?: scalar|Param|null, // Default: null
  *         },
  *     }>,
- *     firewalls: array<string, array{ // Default: []
+ *     firewalls?: array<string, array{ // Default: []
  *         pattern?: scalar|Param|null,
  *         host?: scalar|Param|null,
  *         methods?: list<scalar|Param|null>,
@@ -836,9 +836,9 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             user?: scalar|Param|null, // Default: "REMOTE_USER"
  *         },
  *         login_link?: array{
- *             check_route: scalar|Param|null, // Route that will validate the login link - e.g. "app_login_link_verify".
+ *             check_route?: scalar|Param|null, // Route that will validate the login link - e.g. "app_login_link_verify".
  *             check_post_only?: scalar|Param|null, // If true, only HTTP POST requests to "check_route" will be handled by the authenticator. // Default: false
- *             signature_properties: list<scalar|Param|null>,
+ *             signature_properties?: list<scalar|Param|null>,
  *             lifetime?: int|Param, // The lifetime of the login link in seconds. // Default: 600
  *             max_uses?: int|Param, // Max number of times a login link can be used - null means unlimited within lifetime. // Default: null
  *             used_link_cache?: scalar|Param|null, // Cache service id used to expired links of max_uses is set.
@@ -940,13 +940,13 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             failure_handler?: scalar|Param|null,
  *             realm?: scalar|Param|null, // Default: null
  *             token_extractors?: list<scalar|Param|null>,
- *             token_handler: string|array{
+ *             token_handler?: string|array{
  *                 id?: scalar|Param|null,
  *                 oidc_user_info?: string|array{
- *                     base_uri: scalar|Param|null, // Base URI of the userinfo endpoint on the OIDC server, or the OIDC server URI to use the discovery (require "discovery" to be configured).
+ *                     base_uri?: scalar|Param|null, // Base URI of the userinfo endpoint on the OIDC server, or the OIDC server URI to use the discovery (require "discovery" to be configured).
  *                     discovery?: array{ // Enable the OIDC discovery.
  *                         cache?: array{
- *                             id: scalar|Param|null, // Cache service id to use to cache the OIDC discovery configuration.
+ *                             id?: scalar|Param|null, // Cache service id to use to cache the OIDC discovery configuration.
  *                         },
  *                     },
  *                     claim?: scalar|Param|null, // Claim which contains the user identifier (e.g. sub, email, etc.). // Default: "sub"
@@ -954,27 +954,27 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                 },
  *                 oidc?: array{
  *                     discovery?: array{ // Enable the OIDC discovery.
- *                         base_uri: list<scalar|Param|null>,
+ *                         base_uri?: list<scalar|Param|null>,
  *                         cache?: array{
- *                             id: scalar|Param|null, // Cache service id to use to cache the OIDC discovery configuration.
+ *                             id?: scalar|Param|null, // Cache service id to use to cache the OIDC discovery configuration.
  *                         },
  *                     },
  *                     claim?: scalar|Param|null, // Claim which contains the user identifier (e.g.: sub, email..). // Default: "sub"
- *                     audience: scalar|Param|null, // Audience set in the token, for validation purpose.
- *                     issuers: list<scalar|Param|null>,
+ *                     audience?: scalar|Param|null, // Audience set in the token, for validation purpose.
+ *                     issuers?: list<scalar|Param|null>,
  *                     algorithm?: array<mixed>,
- *                     algorithms: list<scalar|Param|null>,
+ *                     algorithms?: list<scalar|Param|null>,
  *                     key?: scalar|Param|null, // Deprecated: The "key" option is deprecated and will be removed in 8.0. Use the "keyset" option instead. // JSON-encoded JWK used to sign the token (must contain a "kty" key).
  *                     keyset?: scalar|Param|null, // JSON-encoded JWKSet used to sign the token (must contain a list of valid public keys).
  *                     encryption?: bool|array{
  *                         enabled?: bool|Param, // Default: false
  *                         enforce?: bool|Param, // When enabled, the token shall be encrypted. // Default: false
- *                         algorithms: list<scalar|Param|null>,
- *                         keyset: scalar|Param|null, // JSON-encoded JWKSet used to decrypt the token (must contain a list of valid private keys).
+ *                         algorithms?: list<scalar|Param|null>,
+ *                         keyset?: scalar|Param|null, // JSON-encoded JWKSet used to decrypt the token (must contain a list of valid private keys).
  *                     },
  *                 },
  *                 cas?: array{
- *                     validation_url: scalar|Param|null, // CAS server validation URL
+ *                     validation_url?: scalar|Param|null, // CAS server validation URL
  *                     prefix?: scalar|Param|null, // CAS prefix // Default: "cas"
  *                     http_client?: scalar|Param|null, // HTTP Client service // Default: null
  *                 },
@@ -1038,7 +1038,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     use_microseconds?: scalar|Param|null, // Default: true
  *     channels?: list<scalar|Param|null>,
  *     handlers?: array<string, array{ // Default: []
- *         type: scalar|Param|null,
+ *         type?: scalar|Param|null,
  *         id?: scalar|Param|null,
  *         enabled?: bool|Param, // Default: true
  *         priority?: scalar|Param|null, // Default: 0
@@ -1161,7 +1161,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         headers?: list<scalar|Param|null>,
  *         mailer?: scalar|Param|null, // Default: null
  *         email_prototype?: string|array{
- *             id: scalar|Param|null,
+ *             id?: scalar|Param|null,
  *             method?: scalar|Param|null, // Default: null
  *         },
  *         verbosity_levels?: array{
@@ -1188,14 +1188,14 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     favicons?: bool|array{
  *         enabled?: bool|Param, // Default: false
  *         default?: array{ // The favicon source and parameters. When used with "dark", this favicon will become the light version.
- *             src: scalar|Param|null, // The path to the icon. Can be served by Asset Mapper, an absolute path or a Symfony UX Icon (if the bundle is installed).
+ *             src?: scalar|Param|null, // The path to the icon. Can be served by Asset Mapper, an absolute path or a Symfony UX Icon (if the bundle is installed).
  *             background_color?: scalar|Param|null, // The background color of the application. If this value is not defined and that of the Manifest section is, the value of the latter will be used. // Default: null
  *             border_radius?: int|Param, // The border radius of the icon. // Default: null
  *             image_scale?: int|Param, // The scale of the icon. // Default: null
  *             svg_attr?: array<string, mixed>,
  *         },
  *         dark?: array{ // The favicon source and parameters for the dark theme. Should only be used with "default".
- *             src: scalar|Param|null, // The path to the icon. Can be served by Asset Mapper, an absolute path or a Symfony UX Icon (if the bundle is installed).
+ *             src?: scalar|Param|null, // The path to the icon. Can be served by Asset Mapper, an absolute path or a Symfony UX Icon (if the bundle is installed).
  *             background_color?: scalar|Param|null, // The background color of the application. If this value is not defined and that of the Manifest section is, the value of the latter will be used. // Default: null
  *             border_radius?: int|Param, // The border radius of the icon. // Default: null
  *             image_scale?: int|Param, // The scale of the icon. // Default: null
@@ -1235,7 +1235,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         short_name?: scalar|Param|null, // The short name of the application.
  *         scope?: scalar|Param|null, // The scope of the application.
  *         start_url?: string|array{ // The start URL of the application.
- *             path: scalar|Param|null, // The URL or route name.
+ *             path?: scalar|Param|null, // The URL or route name.
  *             path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *             params?: list<mixed>,
  *         },
@@ -1247,18 +1247,18 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         iarc_rating_id?: scalar|Param|null, // Specifies the International Age Rating Coalition (IARC) rating ID for the app. See https://www.globalratings.com/how-iarc-works.aspx for more information.
  *         scope_extensions?: list<array{ // Default: []
  *             type?: scalar|Param|null, // Specifies the type of scope extension. This is currently always origin (default), but future extensions may add other types. // Default: "origin"
- *             origin: scalar|Param|null, // Specifies the origin pattern to associate with.
+ *             origin?: scalar|Param|null, // Specifies the origin pattern to associate with.
  *         }>,
  *         handle_links?: scalar|Param|null, // Specifies the default link handling for the web app.
  *         note_taking?: array{ // The note-taking capabilities of the application.
  *             note_taking_url?: string|array{ // The URL to the note-taking service.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
  *         },
  *         icons?: list<string|array{ // Default: []
- *             src: scalar|Param|null, // The path to the icon. Can be served by Asset Mapper, an absolute path or a Symfony UX Icon (if the bundle is installed).
+ *             src?: scalar|Param|null, // The path to the icon. Can be served by Asset Mapper, an absolute path or a Symfony UX Icon (if the bundle is installed).
  *             sizes?: list<int|Param>,
  *             background_color?: scalar|Param|null, // The background color of the application. If this value is not defined and that of the Manifest section is, the value of the latter will be used. // Default: null
  *             border_radius?: int|Param, // The border radius of the icon. // Default: null
@@ -1280,7 +1280,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         }>,
  *         file_handlers?: list<array{ // Default: []
  *             action?: string|array{ // The action to take.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
@@ -1290,35 +1290,35 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             client_mode?: list<scalar|Param|null>,
  *         },
  *         protocol_handlers?: list<array{ // Default: []
- *             protocol: scalar|Param|null, // The protocol of the handler.
+ *             protocol?: scalar|Param|null, // The protocol of the handler.
  *             placeholder?: scalar|Param|null, // The placeholder of the handler. Will be replaced by "xxx=%s". // Default: null
  *             url?: string|array{ // The URL of the handler.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
  *         }>,
  *         prefer_related_applications?: bool|Param, // prefer related native applications (instead of this application) // Default: false
  *         related_applications?: list<array{ // Default: []
- *             platform: scalar|Param|null, // The platform of the application.
+ *             platform?: scalar|Param|null, // The platform of the application.
  *             url?: string|array{ // The URL of the application.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
  *             id?: scalar|Param|null, // The ID of the application.
  *         }>,
  *         shortcuts?: list<array{ // Default: []
- *             name: scalar|Param|null, // The name of the shortcut.
+ *             name?: scalar|Param|null, // The name of the shortcut.
  *             short_name?: scalar|Param|null, // The short name of the shortcut.
  *             description?: scalar|Param|null, // The description of the shortcut.
  *             url?: string|array{ // The URL of the shortcut.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
  *             icons?: list<string|array{ // Default: []
- *                 src: scalar|Param|null, // The path to the icon. Can be served by Asset Mapper, an absolute path or a Symfony UX Icon (if the bundle is installed).
+ *                 src?: scalar|Param|null, // The path to the icon. Can be served by Asset Mapper, an absolute path or a Symfony UX Icon (if the bundle is installed).
  *                 sizes?: list<int|Param>,
  *                 background_color?: scalar|Param|null, // The background color of the application. If this value is not defined and that of the Manifest section is, the value of the latter will be used. // Default: null
  *                 border_radius?: int|Param, // The border radius of the icon. // Default: null
@@ -1331,13 +1331,13 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         }>,
  *         share_target?: array{ // The share target of the application.
  *             action?: string|array{ // The action of the share target.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
  *             method?: scalar|Param|null, // The method of the share target.
  *             enctype?: scalar|Param|null, // The enctype of the share target. Ignored if method is GET.
- *             params: array{ // The parameters of the share target.
+ *             params?: array{ // The parameters of the share target.
  *                 title?: scalar|Param|null, // The title of the share target.
  *                 text?: scalar|Param|null, // The text of the share target.
  *                 url?: scalar|Param|null, // The URL of the share target.
@@ -1348,11 +1348,11 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             },
  *         },
  *         widgets?: list<array{ // Default: []
- *             name: scalar|Param|null, // The title of the widget, presented to users.
+ *             name?: scalar|Param|null, // The title of the widget, presented to users.
  *             short_name?: scalar|Param|null, // An alternative short version of the name.
- *             description: scalar|Param|null, // The description of the widget.
+ *             description?: scalar|Param|null, // The description of the widget.
  *             icons?: list<string|array{ // Default: []
- *                 src: scalar|Param|null, // The path to the icon. Can be served by Asset Mapper, an absolute path or a Symfony UX Icon (if the bundle is installed).
+ *                 src?: scalar|Param|null, // The path to the icon. Can be served by Asset Mapper, an absolute path or a Symfony UX Icon (if the bundle is installed).
  *                 sizes?: list<int|Param>,
  *                 background_color?: scalar|Param|null, // The background color of the application. If this value is not defined and that of the Manifest section is, the value of the latter will be used. // Default: null
  *                 border_radius?: int|Param, // The border radius of the icon. // Default: null
@@ -1372,15 +1372,15 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                 format?: scalar|Param|null, // The format of the screenshot. Will convert the file if set.
  *                 reference?: scalar|Param|null, // The URL of the screenshot. Only for reference and not used by the bundle. // Default: null
  *             }>,
- *             tag: scalar|Param|null, // A string used to reference the widget in the PWA service worker.
+ *             tag?: scalar|Param|null, // A string used to reference the widget in the PWA service worker.
  *             template?: scalar|Param|null, // The template to use to display the widget in the operating system widgets dashboard. Note: this property is currently only informational and not used. See ms_ac_template below.
  *             ms_ac_template?: string|array{ // The URL of the custom Adaptive Cards template to use to display the widget in the operating system widgets dashboard.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
  *             data?: string|array{ // The URL where the data to fill the template with can be found. If present, this URL is required to return valid JSON.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
@@ -1397,8 +1397,8 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         preconnect?: list<scalar|Param|null>,
  *         dns_prefetch?: list<scalar|Param|null>,
  *         preload?: list<array{ // Default: []
- *             href: scalar|Param|null, // The URL or path to preload.
- *             as: "script"|"style"|"font"|"image"|"fetch"|"document"|"audio"|"video"|"track"|"worker"|Param, // The resource type.
+ *             href?: scalar|Param|null, // The URL or path to preload.
+ *             as?: "script"|"style"|"font"|"image"|"fetch"|"document"|"audio"|"video"|"track"|"worker"|Param, // The resource type.
  *             type?: scalar|Param|null, // The MIME type of the resource. // Default: null
  *             crossorigin?: "anonymous"|"use-credentials"|Param, // The crossorigin attribute value. Required for fonts. // Default: null
  *             fetchpriority?: "high"|"low"|"auto"|Param, // The fetch priority hint. // Default: null
@@ -1440,17 +1440,17 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             offline_fallback?: array{
  *                 cache_name?: scalar|Param|null, // The name of the offline cache. // Default: "offline"
  *                 page?: string|array{ // The URL of the offline page fallback.
- *                     path: scalar|Param|null, // The URL or route name.
+ *                     path?: scalar|Param|null, // The URL or route name.
  *                     path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                     params?: list<mixed>,
  *                 },
  *                 image?: string|array{ // The URL of the offline image fallback.
- *                     path: scalar|Param|null, // The URL or route name.
+ *                     path?: scalar|Param|null, // The URL or route name.
  *                     path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                     params?: list<mixed>,
  *                 },
  *                 font?: string|array{ // The URL of the offline font fallback.
- *                     path: scalar|Param|null, // The URL or route name.
+ *                     path?: scalar|Param|null, // The URL or route name.
  *                     path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                     params?: list<mixed>,
  *                 },
@@ -1476,7 +1476,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                 max_age?: int|Param, // The maximum number of seconds before the font cache is invalidated. // Default: 31536000
  *             },
  *             resource_caches?: list<array{ // Default: []
- *                 match_callback: scalar|Param|null, // The regex or callback function to match the URLs.
+ *                 match_callback?: scalar|Param|null, // The regex or callback function to match the URLs.
  *                 cache_name?: scalar|Param|null, // The name of the page cache.
  *                 network_timeout?: int|Param, // The network timeout in seconds before cache is called (for "NetworkFirst" and "NetworkOnly" strategies). // Default: 3
  *                 strategy?: scalar|Param|null, // The caching strategy. Only "NetworkFirst", "CacheFirst" and "StaleWhileRevalidate" are supported. StaleWhileRevalidate provides instant page loads with background updates. // Default: "StaleWhileRevalidate"
@@ -1488,13 +1488,13 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                 cacheable_response_statuses?: list<int|Param>,
  *                 broadcast_headers?: list<scalar|Param|null>,
  *                 preload_urls?: list<string|array{ // Default: []
- *                     path: scalar|Param|null, // The URL of the shortcut.
+ *                     path?: scalar|Param|null, // The URL of the shortcut.
  *                     params?: list<mixed>,
  *                 }>,
  *             }>,
  *             background_sync?: list<array{ // Default: []
- *                 queue_name: scalar|Param|null, // The name of the queue.
- *                 match_callback: scalar|Param|null, // The regex or callback function to match the URLs.
+ *                 queue_name?: scalar|Param|null, // The name of the queue.
+ *                 match_callback?: scalar|Param|null, // The regex or callback function to match the URLs.
  *                 error_on_4xx?: bool|Param, // Whether to retry the request on 4xx errors. // Default: true
  *                 error_on_5xx?: bool|Param, // Whether to retry the request on 5xx errors. // Default: true
  *                 expected_status_codes?: list<int|Param>,
@@ -1508,12 +1508,12 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                 enabled?: bool|Param, // Default: false
  *                 db_name?: scalar|Param|null, // The IndexDB name where downloads are stored // Default: "bgfetch-completed"
  *                 progress_url?: string|array{ // The URL of the progress page.
- *                     path: scalar|Param|null, // The URL or route name.
+ *                     path?: scalar|Param|null, // The URL or route name.
  *                     path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                     params?: list<mixed>,
  *                 },
  *                 success_url?: string|array{ // The URL of the success page.
- *                     path: scalar|Param|null, // The URL or route name.
+ *                     path?: scalar|Param|null, // The URL or route name.
  *                     path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                     params?: list<mixed>,
  *                 },
@@ -1525,17 +1525,17 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             page_cache_name?: scalar|Param|null, // Deprecated: The "page_cache_name" option is deprecated and will be removed in 2.0.0. Please use "pwa.serviceworker.workbox.resource_caches[].cache_name" instead. // The name of the page cache. // Default: "pages"
  *             asset_cache_name?: scalar|Param|null, // Deprecated: The "asset_cache_name" option is deprecated and will be removed in 2.0.0. Please use "pwa.serviceworker.workbox.asset_cache.cache_name" instead. // The name of the asset cache. // Default: "assets"
  *             page_fallback?: string|array{ // The URL of the offline page fallback.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
  *             image_fallback?: string|array{ // The URL of the offline image fallback.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
  *             font_fallback?: string|array{ // The URL of the offline font fallback.
- *                 path: scalar|Param|null, // The URL or route name.
+ *                 path?: scalar|Param|null, // The URL or route name.
  *                 path_type_reference?: int|Param, // The path type reference to generate paths/URLs. See https://symfony.com/doc/current/routing.html#generating-urls-in-controllers for more information. // Default: 1
  *                 params?: list<mixed>,
  *             },
@@ -1548,7 +1548,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             max_font_age?: int|Param, // Deprecated: The "max_font_age" option is deprecated and will be removed in 2.0.0. Please use "pwa.serviceworker.workbox.font_cache.max_age" instead. // The maximum number of seconds before the font cache is invalidated. // Default: 31536000
  *             network_timeout_seconds?: int|Param, // Deprecated: The "network_timeout_seconds" option is deprecated and will be removed in 2.0.0. Please use "pwa.serviceworker.workbox.resource_caches[].network_timeout" instead. // The network timeout in seconds before cache is called (for warm cache URLs only). // Default: 3
  *             warm_cache_urls?: list<string|array{ // Default: []
- *                 path: scalar|Param|null, // The URL of the shortcut.
+ *                 path?: scalar|Param|null, // The URL of the shortcut.
  *                 params?: list<mixed>,
  *             }>,
  *         },
@@ -1558,7 +1558,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         prefetch?: list<array{ // Default: []
  *             source?: "list"|"document"|Param, // The source type: "list" for explicit URLs, "document" for link matching. // Default: "document"
  *             urls?: list<string|array{ // Default: []
- *                 path: scalar|Param|null, // The URL path or route name.
+ *                 path?: scalar|Param|null, // The URL path or route name.
  *                 params?: list<mixed>,
  *             }>,
  *             selector_matches?: scalar|Param|null, // For "document" source: CSS selector to match links. // Default: null
@@ -1569,7 +1569,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         prerender?: list<array{ // Default: []
  *             source?: "list"|"document"|Param, // The source type: "list" for explicit URLs, "document" for link matching. // Default: "document"
  *             urls?: list<string|array{ // Default: []
- *                 path: scalar|Param|null, // The URL path or route name.
+ *                 path?: scalar|Param|null, // The URL path or route name.
  *                 params?: list<mixed>,
  *             }>,
  *             selector_matches?: scalar|Param|null, // For "document" source: CSS selector to match links. // Default: null
@@ -1599,7 +1599,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     dbal?: array{
  *         default_connection?: scalar|Param|null,
  *         types?: array<string, string|array{ // Default: []
- *             class: scalar|Param|null,
+ *             class?: scalar|Param|null,
  *         }>,
  *         driver_schemes?: array<string, scalar|Param|null>,
  *         connections?: array<string, array{ // Default: []
@@ -1770,7 +1770,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *                 datetime_functions?: array<string, scalar|Param|null>,
  *             },
  *             filters?: array<string, string|array{ // Default: []
- *                 class: scalar|Param|null,
+ *                 class?: scalar|Param|null,
  *                 enabled?: bool|Param, // Default: false
  *                 parameters?: array<string, mixed>,
  *             }>,
@@ -1877,7 +1877,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *             use_underscore?: bool|Param, // Default: true
  *             unordered_list_markers?: list<scalar|Param|null>,
  *         },
- *         ...<mixed>
+ *         ...<string, mixed>
  *     },
  * }
  * @psalm-type ConfigType = array{
@@ -1964,7 +1964,10 @@ final class App
      */
     public static function config(array $config): array
     {
-        return AppReference::config($config);
+        /** @var ConfigType $config */
+        $config = AppReference::config($config);
+
+        return $config;
     }
 }
 

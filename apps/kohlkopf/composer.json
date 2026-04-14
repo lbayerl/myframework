@@ -24,22 +24,22 @@
         "ext-iconv": "*",
         "doctrine/doctrine-bundle": ">=3.2.2",
         "doctrine/doctrine-migrations-bundle": "^4.0",
-        "doctrine/orm": ">=3.6.2",
+        "doctrine/orm": ">=3.6.3",
         "myframework/core": ">=0.1",
-        "spomky-labs/pwa-bundle": ">=1.5.2",
+        "spomky-labs/pwa-bundle": ">=1.5.7",
         "symfony/asset-mapper": "7.4.*",
         "symfony/console": "7.4.*",
         "symfony/dotenv": "7.4.*",
         "symfony/flex": "^2.10",
         "symfony/framework-bundle": "7.4.*",
         "symfony/runtime": "7.4.*",
-        "symfony/stimulus-bundle": ">=2.32",
+        "symfony/stimulus-bundle": ">=3",
         "symfony/translation": "7.4.*",
         "symfony/twig-bundle": "7.4.*",
-        "symfony/ux-turbo": ">=2.32",
+        "symfony/ux-turbo": ">=3",
         "symfony/yaml": "7.4.*",
-        "twig/extra-bundle": "^3.23",
-        "twig/string-extra": "^3.23"
+        "twig/extra-bundle": "^3.24",
+        "twig/string-extra": "^3.24"
     },
     "config": {
         "allow-plugins": {

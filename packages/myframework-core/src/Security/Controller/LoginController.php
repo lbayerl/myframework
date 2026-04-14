@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace MyFramework\Core\Security\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
@@ -16,6 +17,7 @@ final class LoginController extends AbstractController
     public function login(
         AuthenticationUtils $authenticationUtils,
         RateLimiterFactory $authLoginLimiter,
+        #[Autowire(param: 'myframework_core.registration.enabled')] bool $registrationEnabled = true,
     ): Response {
         // Apply rate limiting based on IP address
         $limiter = $authLoginLimiter->create($this->getClientIp());
@@ -24,8 +26,9 @@ final class LoginController extends AbstractController
         }
 
         return $this->render('@MyFrameworkCore/auth/login.html.twig', [
-            'last_username' => $authenticationUtils->getLastUsername(),
-            'error' => $authenticationUtils->getLastAuthenticationError(),
+            'last_username'       => $authenticationUtils->getLastUsername(),
+            'error'               => $authenticationUtils->getLastAuthenticationError(),
+            'registration_enabled' => $registrationEnabled,
         ]);
     }
 

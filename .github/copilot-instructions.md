@@ -183,7 +183,7 @@ L:\php\php85\php.exe bin/console app:fetch-missing-images
 
 ### Doctrine Migrations in Kohlkopf
 
-**Known issue**: `doctrine:migrations:diff` always reports a "metadata out of sync" error in this app. This appears to be caused by the dual entity mapping (App entities + MyFrameworkCore bundle entities) combined with the `underscore_number_aware` naming strategy and the UUID custom ID generator. The diff command cannot be trusted to produce correct output.
+**Important**: `doctrine:migrations:diff` cannot be trusted to produce correct output in apps with dual entity mapping (App entities + MyFrameworkCore bundle entities). Always write migrations manually.
 
 **Established approach — always write migrations manually:**
 1. Write the migration SQL by hand as an `ALTER TABLE` statement.
@@ -310,7 +310,7 @@ MYFRAMEWORK_APP_NAME="Your App Name"
 MYFRAMEWORK_PRIMARY_COLOR=0d6efd
 
 # Database
-DATABASE_URL="mysql://symfony:password@127.0.0.1:3307/symf_yourapp?serverVersion=11.0&charset=utf8mb4"
+DATABASE_URL="mysql://symfony:password@127.0.0.1:3307/symf_yourapp?serverVersion=mariadb-11.0.0&charset=utf8mb4"
 
 # Mailer
 MAILER_DSN=smtp://user:password@smtp-relay.brevo.com:587
@@ -347,7 +347,7 @@ ON `symf\_%`.* TO 'symfony'@'localhost';
 
 4. **Configure DATABASE_URL** in `.env.local`:
 ```env
-DATABASE_URL="mysql://symfony:password@127.0.0.1:3307/symf_yourapp?serverVersion=11.0&charset=utf8mb4"
+DATABASE_URL="mysql://symfony:password@127.0.0.1:3307/symf_yourapp?serverVersion=mariadb-11.0.0&charset=utf8mb4"
 #                                              ^^^^              ^^^^^^^^^^^
 #                                          Local tunnel port   Schema name
 ```
@@ -562,7 +562,7 @@ app.register('myframework--pullrefresh', PullrefreshController);
 
 5. **No explicit bundle config file**: Apps don't need `config/packages/my_framework_core.yaml` - all config has ENV defaults. Only create if overriding defaults.
 
-6. **Doctrine migrations diff broken in kohlkopf**: `doctrine:migrations:diff` always produces a misleading "metadata out of sync" error in the kohlkopf app. Do not use it. Always write migrations manually — see the "Doctrine Migrations in Kohlkopf" section above.
+6. **MariaDB serverVersion format**: Always use `serverVersion=mariadb-11.0.0` (with the `mariadb-` prefix) in `DATABASE_URL`, **not** `serverVersion=11.0`. Without the prefix, Doctrine DBAL uses the generic MySQL platform, which misinterprets MariaDB's `DEFAULT NULL` on datetime columns. This causes `doctrine:migrations:status`, `migrate`, and `list` to fail with "metadata storage is not up to date" — even right after running `sync-metadata-storage`. The `mariadb-` prefix makes DBAL use the correct MariaDB platform and the issue disappears.
 
 7. **PHP executable on Windows**: The `php` from PATH is not the right version. Always use `L:\php\php85\php.exe` explicitly.
 

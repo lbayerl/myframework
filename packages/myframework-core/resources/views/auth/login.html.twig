@@ -32,8 +32,10 @@
             <hr class="my-3">
 
             <div class="text-center">
-                <a href="{{ path('myframework_auth_register') }}" class="text-decoration-none">Konto erstellen</a>
-                <span class="text-muted mx-2">·</span>
+                {% if registration_enabled %}
+                    <a href="{{ path('myframework_auth_register') }}" class="text-decoration-none">Konto erstellen</a>
+                    <span class="text-muted mx-2">·</span>
+                {% endif %}
                 <a href="{{ path('myframework_auth_reset_password_request') }}" class="text-decoration-none">Passwort vergessen?</a>
             </div>
         </div>

@@ -58,6 +58,15 @@ final class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('registration')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('enabled')
+                            ->defaultTrue()
+                            ->info('Set to false to disable public self-registration (/register)')
+                        ->end()
+                    ->end()
+                ->end()
             ->end();
 
         return $treeBuilder;

@@ -14,6 +14,7 @@ use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
+use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\RateLimiter\RateLimiterFactory;
 use Symfony\Component\Routing\Attribute\Route;
 
@@ -27,7 +28,12 @@ final class RegisterController extends AbstractController
         TokenFactory $tokenFactory,
         AuthMailer $mailer,
         RateLimiterFactory $authRegistrationLimiter,
+        #[Autowire(param: 'myframework_core.registration.enabled')] bool $registrationEnabled = true,
     ): Response {
+        if (!$registrationEnabled) {
+            throw $this->createNotFoundException();
+        }
+
         // Apply rate limiting based on IP address
         $limiter = $authRegistrationLimiter->create($request->getClientIp() ?? '0.0.0.0');
         

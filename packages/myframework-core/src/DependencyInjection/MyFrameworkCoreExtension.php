@@ -26,6 +26,7 @@ final class MyFrameworkCoreExtension extends Extension
         $container->setParameter('myframework_core.ui.home_route', $config['ui']['home_route']);
 
         $container->setParameter('myframework_core.mailer.from_email', $config['mailer']['from_email']);
+        $container->setParameter('myframework_core.registration.enabled', $config['registration']['enabled']);
 
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../../resources/config'));
         $loader->load('services.yaml');

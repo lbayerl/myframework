@@ -25,7 +25,7 @@ final class ConcertRepository extends ServiceEntityRepository
      *
      * @return array<int, array{concert: Concert, attendingCount: int, interestedCount: int}>
      */
-    public function findUpcomingWithCounts(int $limit = 50): array
+    public function findUpcomingWithCounts(): array
     {
         $dql = "
             SELECT c,
@@ -41,7 +41,6 @@ final class ConcertRepository extends ServiceEntityRepository
             ->setParameter('now', new \DateTime('now'))
             ->setParameter('attending', AttendeeStatus::ATTENDING)
             ->setParameter('interested', AttendeeStatus::INTERESTED)
-            ->setMaxResults($limit)
             ->getResult();
 
         return array_map(fn($row) => [
